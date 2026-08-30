@@ -69,7 +69,10 @@ function isSolved(tubes: Tube[]): boolean {
  * therefore the generator always has a valid solution path.
  */
 function generateLevel(level: number): Tube[] {
-  const colorCount = Math.min(3 + Math.floor((level - 1) / 8), 8);
+  const colors = Math.min(
+    3 + Math.floor((level - 1) / 8),
+    8
+  );
 
   const emptyTubes =
     level < 15
@@ -80,63 +83,164 @@ function generateLevel(level: number): Tube[] {
 
   const tubes: Tube[] = [];
 
-  for (let color = 0; color < colorCount; color++) {
-    tubes.push([
-      color,
-      color,
-      color,
-      color,
-    ]);
+  // Start solved.
+  for (let color = 0; color < colors; color++) {
+    tubes.push([color, color, color, color]);
   }
 
   for (let i = 0; i < emptyTubes; i++) {
     tubes.push([]);
   }
 
-  const moves = Math.min(20 + level * 4, 180);
+  /*
+   * Reverse-scramble the solved board.
+   *
+   * Each reverse operation is guaranteed to be the inverse
+   * of a legal forward pour. Therefore the generated puzzle
+   * always has a known solution.
+   */
+  const targetMoves = Math.min(
+    18 + level * 4,
+    220
+  );
 
-  for (let step = 0; step < moves; step++) {
-    const candidates: Array<[number, number]> = [];
+  let seed = level * 7919 + 17;
+
+  for (let step = 0; step < targetMoves; step++) {
+    const candidates: Array<
+      [number, number, number]
+    > = [];
 
     for (let from = 0; from < tubes.length; from++) {
-      if (tubes[from].length === 0) continue;
+      const source = tubes[from];
 
-      const color = tubes[from][tubes[from].length - 1];
+      if (!source.length) continue;
 
-      for (let to = 0; to < tubes.length; to++) {
+      const color =
+        source[source.length - 1];
+
+      const run = topRun(source);
+
+      for (
+        let to = 0;
+        to < tubes.length;
+        to++
+      ) {
         if (from === to) continue;
-        if (tubes[to].length >= CAPACITY) continue;
 
+        const target = tubes[to];
+
+        const free =
+          CAPACITY - target.length;
+
+        if (free <= 0) continue;
+
+        // Don't merge with an existing same-color run.
         if (
-          tubes[to].length === 0 ||
-          tubes[to][tubes[to].length - 1] === color
+          target.length > 0 &&
+          target[target.length - 1] === color
         ) {
-          candidates.push([from, to]);
+          continue;
+        }
+
+        /*
+         * If we remove the entire run, the newly exposed
+         * layer must be a different color (or the tube empty).
+         */
+        const maxAmount =
+          source.length === run
+            ? run
+            : run - 1;
+
+        if (maxAmount <= 0) continue;
+
+        const max = Math.min(
+          maxAmount,
+          free
+        );
+
+        for (
+          let amount = 1;
+          amount <= max;
+          amount++
+        ) {
+          candidates.push([
+            from,
+            to,
+            amount,
+          ]);
         }
       }
     }
 
-    if (candidates.length === 0) break;
+    if (!candidates.length) {
+      break;
+    }
 
-    const index = Math.floor(random(level * 1000 + step) * candidates.length);
-
-    const [from, to] = candidates[index];
-
-    const amount = Math.min(
-      topRun(tubes[from]),
-      CAPACITY - tubes[to].length
+    const index = Math.floor(
+      random(
+        seed + step * 31
+      ) * candidates.length
     );
 
-    const moved = tubes[from].splice(
-      tubes[from].length - amount,
-      amount
-    );
+    const [
+      from,
+      to,
+      amount,
+    ] = candidates[index];
+
+    const moved =
+      tubes[from].splice(
+        tubes[from].length - amount,
+        amount
+      );
 
     tubes[to].push(...moved);
+
+    seed =
+      (seed * 1664525 + 1013904223) >>> 0;
   }
 
+  /*
+   * Never recursively regenerate.
+   * If an extremely unusual seed produces a solved
+   * board, make additional deterministic reverse moves.
+   */
   if (isSolved(tubes)) {
-    return generateLevel(level + 1);
+    for (
+      let extra = 0;
+      extra < 100 && isSolved(tubes);
+      extra++
+    ) {
+      const from =
+        extra % colors;
+
+      const to =
+        colors +
+        (extra % emptyTubes);
+
+      if (
+        !tubes[from].length ||
+        tubes[to].length >= CAPACITY
+      ) {
+        continue;
+      }
+
+      const amount = Math.min(
+        topRun(tubes[from]),
+        CAPACITY - tubes[to].length
+      );
+
+      if (!amount) continue;
+
+      const moved =
+        tubes[from].splice(
+          tubes[from].length - amount,
+          amount
+        );
+
+      tubes[to].push(...moved);
+    }
   }
 
   return tubes;
