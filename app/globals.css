@@ -470,117 +470,244 @@ h1 {
   background:
     rgba(255, 255, 255, 0.18);
 }
-
 /* WATER */
 
 .water {
   position: absolute;
-
   left: 3px;
   right: 3px;
-
-  bottom: 3px;
   top: 7px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  justify-content: flex-start;
+  bottom: 3px;
 
   overflow: hidden;
-
-  border-radius:
-    0
-    0
-    23px
-    23px;
+  border-radius: 0 0 23px 23px;
 
   z-index: 2;
 }
 
+/*
+  IMPORTANT:
+  Liquid is anchored from the BOTTOM.
+
+  Layer 1 = bottom
+  Layer 2 = above
+  Layer 3 = above
+  Layer 4 = top
+*/
+
 .waterLayer {
-  position: relative;
+  position: absolute;
 
-  width: 100%;
+  left: 0;
+  right: 0;
 
-  height:
-    calc((100% - 8px) / 4);
+  height: 25%;
 
-  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 
-  border-top:
-    1px solid
-    rgba(255, 255, 255, 0.13);
+  overflow: hidden;
 
   box-shadow:
-    inset 0 4px 8px
-      rgba(255, 255, 255, 0.16),
+    inset 0 4px 8px rgba(255,255,255,.14),
+    inset 0 -8px 14px rgba(0,0,0,.18);
 
-    inset 0 -8px 14px
-      rgba(0, 0, 0, 0.18);
+  transform-origin: center bottom;
 
   animation:
-    waterAppear
-    0.25s
-    ease
+    waterSettle
+    .35s
+    cubic-bezier(.22,1,.36,1)
     both;
 }
 
-.waterLayer::before {
+/* Bottom liquid */
+.waterLayer:nth-child(1) {
+  bottom: 0;
+
+  border-radius:
+    0
+    0
+    22px
+    22px;
+}
+
+/* Second liquid */
+.waterLayer:nth-child(2) {
+  bottom: 25%;
+}
+
+/* Third liquid */
+.waterLayer:nth-child(3) {
+  bottom: 50%;
+}
+
+/* Top liquid */
+.waterLayer:nth-child(4) {
+  bottom: 75%;
+}
+
+/*
+  Curved water surface.
+  Only the highest layer should
+  look like the exposed surface.
+*/
+
+.waterLayer:last-child::before {
   content: "";
 
   position: absolute;
 
-  left: 8%;
-  right: 8%;
+  left: -5%;
+  width: 110%;
 
-  top: 3px;
-
-  height: 3px;
+  top: -2px;
+  height: 8px;
 
   border-radius: 50%;
 
   background:
-    rgba(255, 255, 255, 0.3);
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.42),
+      rgba(255,255,255,.10)
+    );
 
-  filter: blur(0.5px);
+  box-shadow:
+    0 1px 4px rgba(255,255,255,.2);
+
+  animation:
+    waterSurface
+    1.8s
+    ease-in-out
+    infinite;
 }
+
+/*
+  Internal liquid reflection.
+*/
 
 .waterLayer::after {
   content: "";
 
   position: absolute;
 
-  left: 15%;
-  top: 15%;
+  left: 7%;
+  top: 8%;
 
-  width: 28%;
-
-  height: 55%;
+  width: 34%;
+  height: 72%;
 
   border-radius: 50%;
 
   background:
     linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0.22),
+      rgba(255,255,255,.22),
+      rgba(255,255,255,.06),
       transparent
     );
 
   filter: blur(3px);
+
+  opacity: .75;
 }
 
 /*
-  Gives the water surface a slight curved appearance.
+  Water wobble when selected.
 */
 
-.waterLayer:first-child::before {
-  height: 5px;
+.tubeButton.selected .waterLayer {
+  animation:
+    waterWobble
+    .75s
+    ease-in-out
+    infinite;
+}
 
-  top: 1px;
+.tubeButton.selected
+.waterLayer:nth-child(2) {
+  animation-delay: .025s;
+}
 
-  opacity: 0.75;
+.tubeButton.selected
+.waterLayer:nth-child(3) {
+  animation-delay: .05s;
+}
+
+.tubeButton.selected
+.waterLayer:nth-child(4) {
+  animation-delay: .075s;
+}
+
+/* Water settling */
+
+@keyframes waterSettle {
+
+  from {
+    transform:
+      translateY(-5px)
+      scaleY(.96);
+
+    opacity: .55;
+  }
+
+  to {
+    transform:
+      translateY(0)
+      scaleY(1);
+
+    opacity: 1;
+  }
+}
+
+/* Natural surface movement */
+
+@keyframes waterSurface {
+
+  0%,
+  100% {
+    transform:
+      translateX(-1%)
+      scaleX(1);
+  }
+
+  50% {
+    transform:
+      translateX(1%)
+      scaleX(1.025);
+  }
+}
+
+/* Small liquid wobble */
+
+@keyframes waterWobble {
+
+  0%,
+  100% {
+    transform:
+      translateX(0)
+      skewX(0deg);
+  }
+
+  25% {
+    transform:
+      translateX(1px)
+      skewX(.35deg);
+  }
+
+  50% {
+    transform:
+      translateX(-1px)
+      skewX(-.35deg);
+  }
+
+  75% {
+    transform:
+      translateX(.6px)
+      skewX(.2deg);
+  }
 }
 
 /* TUBE NUMBER */
