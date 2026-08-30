@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 
 type Tube = number[];
+
 type Move = {
   from: number;
   to: number;
@@ -27,21 +28,11 @@ function random(seed: number) {
   return x - Math.floor(x);
 }
 
-function shuffle<T>(array: T[], seed: number): T[] {
-  const result = [...array];
-
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(random(seed + i) * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-
-  return result;
-}
-
 function topRun(tube: Tube): number {
   if (tube.length === 0) return 0;
 
   const color = tube[tube.length - 1];
+
   let count = 0;
 
   for (let i = tube.length - 1; i >= 0; i--) {
@@ -56,17 +47,18 @@ function isSolved(tubes: Tube[]): boolean {
   return tubes.every(
     (tube) =>
       tube.length === 0 ||
-      (tube.length === CAPACITY && tube.every((color) => color === tube[0]))
+      (tube.length === CAPACITY &&
+        tube.every((color) => color === tube[0]))
   );
 }
 
 /*
- * Generate from a solved state and scramble it using legal moves.
+ * Procedural level generator.
  *
- * This is important:
- * We never create an arbitrary random puzzle.
- * Every generated puzzle originates from a known solved state,
- * therefore the generator always has a valid solution path.
+ * Every level starts from a solved state and is
+ * reverse-scrambled using legal moves.
+ *
+ * Therefore every generated level has a solution.
  */
 function generateLevel(level: number): Tube[] {
   const colors = Math.min(
@@ -83,22 +75,19 @@ function generateLevel(level: number): Tube[] {
 
   const tubes: Tube[] = [];
 
-  // Start solved.
   for (let color = 0; color < colors; color++) {
-    tubes.push([color, color, color, color]);
+    tubes.push([
+      color,
+      color,
+      color,
+      color,
+    ]);
   }
 
   for (let i = 0; i < emptyTubes; i++) {
     tubes.push([]);
   }
 
-  /*
-   * Reverse-scramble the solved board.
-   *
-   * Each reverse operation is guaranteed to be the inverse
-   * of a legal forward pour. Therefore the generated puzzle
-   * always has a known solution.
-   */
   const targetMoves = Math.min(
     18 + level * 4,
     220
@@ -106,12 +95,20 @@ function generateLevel(level: number): Tube[] {
 
   let seed = level * 7919 + 17;
 
-  for (let step = 0; step < targetMoves; step++) {
+  for (
+    let step = 0;
+    step < targetMoves;
+    step++
+  ) {
     const candidates: Array<
       [number, number, number]
     > = [];
 
-    for (let from = 0; from < tubes.length; from++) {
+    for (
+      let from = 0;
+      from < tubes.length;
+      from++
+    ) {
       const source = tubes[from];
 
       if (!source.length) continue;
@@ -135,7 +132,6 @@ function generateLevel(level: number): Tube[] {
 
         if (free <= 0) continue;
 
-        // Don't merge with an existing same-color run.
         if (
           target.length > 0 &&
           target[target.length - 1] === color
@@ -143,10 +139,6 @@ function generateLevel(level: number): Tube[] {
           continue;
         }
 
-        /*
-         * If we remove the entire run, the newly exposed
-         * layer must be a different color (or the tube empty).
-         */
         const maxAmount =
           source.length === run
             ? run
@@ -173,9 +165,7 @@ function generateLevel(level: number): Tube[] {
       }
     }
 
-    if (!candidates.length) {
-      break;
-    }
+    if (!candidates.length) break;
 
     const index = Math.floor(
       random(
@@ -198,13 +188,13 @@ function generateLevel(level: number): Tube[] {
     tubes[to].push(...moved);
 
     seed =
-      (seed * 1664525 + 1013904223) >>> 0;
+      (seed * 1664525 +
+        1013904223) >>>
+      0;
   }
 
   /*
-   * Never recursively regenerate.
-   * If an extremely unusual seed produces a solved
-   * board, make additional deterministic reverse moves.
+   * Safety fallback.
    */
   if (isSolved(tubes)) {
     for (
@@ -246,16 +236,25 @@ function generateLevel(level: number): Tube[] {
   return tubes;
 }
 
-function canPour(tubes: Tube[], from: number, to: number): boolean {
+function canPour(
+  tubes: Tube[],
+  from: number,
+  to: number
+): boolean {
   if (from === to) return false;
 
   const source = tubes[from];
   const target = tubes[to];
 
   if (source.length === 0) return false;
-  if (target.length >= CAPACITY) return false;
 
-  if (target.length === 0) return true;
+  if (target.length >= CAPACITY) {
+    return false;
+  }
+
+  if (target.length === 0) {
+    return true;
+  }
 
   return (
     source[source.length - 1] ===
@@ -263,20 +262,29 @@ function canPour(tubes: Tube[], from: number, to: number): boolean {
   );
 }
 
-function pour(tubes: Tube[], from: number, to: number): Tube[] | null {
-  if (!canPour(tubes, from, to)) return null;
+function pour(
+  tubes: Tube[],
+  from: number,
+  to: number
+): Tube[] | null {
+  if (!canPour(tubes, from, to)) {
+    return null;
+  }
 
-  const next = tubes.map((tube) => [...tube]);
+  const next = tubes.map((tube) => [
+    ...tube,
+  ]);
 
   const amount = Math.min(
     topRun(next[from]),
     CAPACITY - next[to].length
   );
 
-  const moved = next[from].splice(
-    next[from].length - amount,
-    amount
-  );
+  const moved =
+    next[from].splice(
+      next[from].length - amount,
+      amount
+    );
 
   next[to].push(...moved);
 
@@ -286,21 +294,28 @@ function pour(tubes: Tube[], from: number, to: number): Tube[] | null {
 export default function WaterSorter() {
   const [level, setLevel] = useState(1);
 
-  const [tubes, setTubes] = useState<Tube[]>(() =>
-    generateLevel(1)
+  const [tubes, setTubes] = useState<Tube[]>(
+    () => generateLevel(1)
   );
 
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] =
+    useState<number | null>(null);
 
   const [moves, setMoves] = useState(0);
 
-  const [history, setHistory] = useState<Move[]>([]);
+  const [history, setHistory] =
+    useState<Move[]>([]);
 
   const [won, setWon] = useState(false);
 
   const [muted, setMuted] = useState(false);
 
-  const audioContext = useRef<AudioContext | null>(null);
+  /*
+   * Kept for the existing SFX system.
+   * We are not changing audio yet.
+   */
+  const audioContext =
+    useRef<AudioContext | null>(null);
 
   const difficulty = useMemo(() => {
     if (level < 8) return "EASY";
@@ -310,7 +325,13 @@ export default function WaterSorter() {
     return "EXPERT";
   }, [level]);
 
-  function sound(type: "tap" | "pour" | "bad" | "win") {
+  function sound(
+    type:
+      | "tap"
+      | "pour"
+      | "bad"
+      | "win"
+  ) {
     if (muted) return;
 
     try {
@@ -318,24 +339,30 @@ export default function WaterSorter() {
         window.AudioContext ||
         (
           window as typeof window & {
-            webkitAudioContext?: typeof AudioContext;
+            webkitAudioContext?:
+              typeof AudioContext;
           }
         ).webkitAudioContext;
 
       if (!AudioContextClass) return;
 
       if (!audioContext.current) {
-        audioContext.current = new AudioContextClass();
+        audioContext.current =
+          new AudioContextClass();
       }
 
-      const ctx = audioContext.current;
+      const ctx =
+        audioContext.current;
 
       if (ctx.state === "suspended") {
         void ctx.resume();
       }
 
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const oscillator =
+        ctx.createOscillator();
+
+      const gain =
+        ctx.createGain();
 
       oscillator.connect(gain);
       gain.connect(ctx.destination);
@@ -347,7 +374,8 @@ export default function WaterSorter() {
         win: 720,
       };
 
-      oscillator.frequency.value = frequencies[type];
+      oscillator.frequency.value =
+        frequencies[type];
 
       oscillator.type =
         type === "bad"
@@ -358,7 +386,15 @@ export default function WaterSorter() {
 
       const now = ctx.currentTime;
 
-      gain.gain.setValueAtTime(0.0001, now);
+      const duration =
+        type === "pour"
+          ? 0.2
+          : 0.12;
+
+      gain.gain.setValueAtTime(
+        0.0001,
+        now
+      );
 
       gain.gain.exponentialRampToValueAtTime(
         0.06,
@@ -367,70 +403,108 @@ export default function WaterSorter() {
 
       gain.gain.exponentialRampToValueAtTime(
         0.0001,
-        now + (type === "pour" ? 0.2 : 0.12)
+        now + duration
       );
 
       oscillator.start(now);
+
       oscillator.stop(
-        now + (type === "pour" ? 0.2 : 0.12)
+        now + duration
       );
     } catch {
-      // Audio is optional; gameplay must never fail because of audio.
+      /*
+       * Audio must never break gameplay.
+       */
     }
   }
 
-  function handleTubeClick(index: number) {
+  function handleTubeClick(
+    index: number
+  ) {
     if (won) return;
 
+    /*
+     * First tap selects the source tube.
+     */
     if (selected === null) {
-      if (tubes[index].length === 0) return;
+      if (tubes[index].length === 0) {
+        return;
+      }
 
       setSelected(index);
+
       sound("tap");
 
       return;
     }
 
+    /*
+     * Tapping the selected tube
+     * deselects it.
+     */
     if (selected === index) {
       setSelected(null);
 
       return;
     }
 
-    const next = pour(tubes, selected, index);
+    const next = pour(
+      tubes,
+      selected,
+      index
+    );
 
+    /*
+     * Invalid pour.
+     */
     if (!next) {
       sound("bad");
+
       setSelected(null);
 
       return;
     }
 
+    /*
+     * Save undo state.
+     */
     setHistory((current) => [
       ...current,
       {
         from: selected,
         to: index,
-        previous: tubes.map((tube) => [...tube]),
+        previous:
+          tubes.map((tube) => [
+            ...tube,
+          ]),
       },
     ]);
 
     setTubes(next);
 
-    setMoves((value) => value + 1);
+    setMoves(
+      (value) => value + 1
+    );
 
     setSelected(null);
 
     sound("pour");
 
+    /*
+     * Check victory.
+     */
     if (isSolved(next)) {
       setWon(true);
+
       sound("win");
     }
   }
 
   function restart() {
-    setTubes(generateLevel(level));
+    setTubes(
+      generateLevel(level)
+    );
+
     setSelected(null);
     setMoves(0);
     setHistory([]);
@@ -438,11 +512,16 @@ export default function WaterSorter() {
   }
 
   function undo() {
-    const last = history[history.length - 1];
+    const last =
+      history[history.length - 1];
 
     if (!last) return;
 
-    setTubes(last.previous.map((tube) => [...tube]));
+    setTubes(
+      last.previous.map(
+        (tube) => [...tube]
+      )
+    );
 
     setHistory((current) =>
       current.slice(0, -1)
@@ -457,10 +536,19 @@ export default function WaterSorter() {
   }
 
   function nextLevel() {
-    const nextLevelNumber = level + 1;
+    const nextLevelNumber =
+      level + 1;
 
-    setLevel(nextLevelNumber);
-    setTubes(generateLevel(nextLevelNumber));
+    setLevel(
+      nextLevelNumber
+    );
+
+    setTubes(
+      generateLevel(
+        nextLevelNumber
+      )
+    );
+
     setSelected(null);
     setMoves(0);
     setHistory([]);
@@ -471,19 +559,32 @@ export default function WaterSorter() {
     <main className="gamePage">
       <header className="header">
         <div className="logo">
-          <div className="logoIcon">∞</div>
+          <div className="logoIcon">
+            ∞
+          </div>
 
           <div>
-            <strong>1000 GAMES</strong>
-            <small>GAME #001</small>
+            <strong>
+              1000 GAMES
+            </strong>
+
+            <small>
+              GAME #001
+            </small>
           </div>
         </div>
 
         <button
           className="soundButton"
-          onClick={() => setMuted((value) => !value)}
+          onClick={() =>
+            setMuted(
+              (value) => !value
+            )
+          }
           aria-label={
-            muted ? "Enable sound" : "Disable sound"
+            muted
+              ? "Enable sound"
+              : "Disable sound"
           }
         >
           {muted ? "🔇" : "🔊"}
@@ -497,10 +598,13 @@ export default function WaterSorter() {
               LIQUID PUZZLE
             </div>
 
-            <h1>Water Sorter</h1>
+            <h1>
+              Water Sorter
+            </h1>
 
             <p>
-              Sort every color into its own tube.
+              Sort every color into
+              its own tube.
             </p>
           </div>
 
@@ -525,59 +629,86 @@ export default function WaterSorter() {
         <div className="actions">
           <button
             onClick={undo}
-            disabled={history.length === 0}
+            disabled={
+              history.length === 0
+            }
           >
             ↶ Undo
           </button>
 
-          <button onClick={restart}>
+          <button
+            onClick={restart}
+          >
             ↻ Restart
           </button>
         </div>
 
         <div className="board">
-          {tubes.map((tube, index) => (
-            <button
-              key={index}
-              className={`tubeButton ${
-                selected === index
-                  ? "selected"
-                  : ""
-              }`}
-              onClick={() =>
-                handleTubeClick(index)
-              }
-              aria-label={`Tube ${index + 1}`}
-            >
-              <div className="tube">
-                <div className="tubeRim" />
+          {tubes.map(
+            (tube, index) => (
+              <button
+                key={index}
+                className={`tubeButton ${
+                  selected === index
+                    ? "selected"
+                    : ""
+                }`}
+                onClick={() =>
+                  handleTubeClick(
+                    index
+                  )
+                }
+                aria-label={`Tube ${
+                  index + 1
+                }`}
+              >
+                <div className="tube">
+                  <div className="tubeRim" />
 
-                <div className="glassReflection" />
+                  <div className="glassReflection" />
 
-                <div className="water">
-                  {tube.map((color, position) => (
-                    <div
-                      key={`${index}-${position}`}
-                      className="waterLayer"
-                      style={{
-                        background: COLORS[color],
-                      }}
-                    >
-                      <span />
-                    </div>
-                  ))}
+                  <div className="water">
+                    {tube.map(
+                      (
+                        color,
+                        position
+                      ) => (
+                        <div
+                          key={`${index}-${position}`}
+                          className="waterLayer"
+
+                          /*
+                           * IMPORTANT:
+                           *
+                           * The CSS now controls
+                           * the liquid appearance.
+                           *
+                           * React only provides
+                           * the actual liquid color.
+                           */
+                          style={
+                            {
+                              "--liquid-color":
+                                COLORS[color],
+                            } as React.CSSProperties
+                          }
+                        />
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <span className="tubeNumber">
-                {index + 1}
-              </span>
-            </button>
-          ))}
+                <span className="tubeNumber">
+                  {index + 1}
+                </span>
+              </button>
+            )
+          )}
         </div>
 
         <div className="instruction">
-          Tap a tube, then tap another tube to pour.
+          Tap a tube, then tap
+          another tube to pour.
         </div>
 
         {won && (
@@ -590,13 +721,18 @@ export default function WaterSorter() {
               LEVEL COMPLETE
             </div>
 
-            <h2>Perfectly sorted!</h2>
+            <h2>
+              Perfectly sorted!
+            </h2>
 
             <p>
-              Level {level} · {moves} moves
+              Level {level} ·{" "}
+              {moves} moves
             </p>
 
-            <button onClick={nextLevel}>
+            <button
+              onClick={nextLevel}
+            >
               Next Level →
             </button>
           </div>
@@ -604,12 +740,22 @@ export default function WaterSorter() {
       </section>
 
       <footer>
-        <span>♾ Infinite Levels</span>
+        <span>
+          ♾ Infinite Levels
+        </span>
+
         <span>•</span>
-        <span>Procedural Generation</span>
+
+        <span>
+          Procedural Generation
+        </span>
+
         <span>•</span>
-        <span>Sound FX</span>
+
+        <span>
+          Sound FX
+        </span>
       </footer>
     </main>
   );
-    }
+}
