@@ -2,10 +2,20 @@
   box-sizing: border-box;
 }
 
+:root {
+  --glass-border: rgba(220, 242, 255, 0.48);
+  --glass-highlight: rgba(255, 255, 255, 0.34);
+  --glass-shadow: rgba(0, 0, 0, 0.42);
+  --text-primary: #f5f8ff;
+  --text-muted: #8196ae;
+  --accent: #67d9ff;
+}
+
 html,
 body {
   margin: 0;
   min-height: 100%;
+
   font-family:
     Inter,
     system-ui,
@@ -13,8 +23,9 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #06101d;
-  color: #f5f8ff;
+
+  background: #040a12;
+  color: var(--text-primary);
 }
 
 body {
@@ -23,42 +34,97 @@ body {
 
 button {
   font: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* =========================================================
+   GAME BACKGROUND
+   ========================================================= */
 
 .gamePage {
   min-height: 100vh;
+
   background:
     radial-gradient(
-      circle at 50% -10%,
-      #1c4164 0%,
-      #0c1d31 38%,
-      #050b14 100%
+      ellipse at 50% -12%,
+      rgba(38, 91, 135, 0.72) 0%,
+      rgba(16, 42, 68, 0.6) 30%,
+      rgba(7, 17, 29, 0.95) 62%,
+      #030811 100%
     );
+
+  position: relative;
 }
 
-/* HEADER */
+.gamePage::before {
+  content: "";
+
+  position: fixed;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle at 15% 35%,
+      rgba(69, 190, 255, 0.035),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 85% 65%,
+      rgba(86, 115, 255, 0.035),
+      transparent 30%
+    );
+
+  z-index: 0;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
 
 .header {
   height: 68px;
+
   padding: 0 20px;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  background: rgba(4, 11, 21, 0.62);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 13, 24, 0.82),
+      rgba(4, 11, 20, 0.62)
+    );
 
-  backdrop-filter: blur(18px);
+  border-bottom:
+    1px solid
+    rgba(255, 255, 255, 0.09);
+
+  backdrop-filter: blur(22px);
 
   position: sticky;
   top: 0;
-  z-index: 10;
+
+  z-index: 20;
+
+  box-shadow:
+    0 10px 35px
+    rgba(0, 0, 0, 0.18);
 }
 
 .logo {
   display: flex;
   align-items: center;
+
   gap: 10px;
 }
 
@@ -72,19 +138,34 @@ button {
   border-radius: 11px;
 
   color: #75dcff;
+
   font-size: 25px;
 
-  border: 1px solid rgba(117, 220, 255, 0.4);
+  background:
+    radial-gradient(
+      circle at 35% 25%,
+      rgba(255, 255, 255, 0.12),
+      transparent 45%
+    ),
+    rgba(80, 180, 255, 0.05);
+
+  border:
+    1px solid
+    rgba(117, 220, 255, 0.4);
 
   box-shadow:
-    0 0 25px rgba(45, 190, 255, 0.15),
-    inset 0 0 15px rgba(255, 255, 255, 0.04);
+    0 0 25px
+    rgba(45, 190, 255, 0.15),
+
+    inset 0 0 15px
+    rgba(255, 255, 255, 0.04);
 }
 
 .logo strong {
   display: block;
 
   font-size: 12px;
+
   letter-spacing: 0.08em;
 }
 
@@ -106,29 +187,57 @@ button {
 
   border-radius: 12px;
 
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.13);
 
-  background: rgba(255, 255, 255, 0.06);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(255, 255, 255, 0.025)
+    );
 
   color: white;
 
   cursor: pointer;
 
+  box-shadow:
+    inset 0 1px
+    rgba(255, 255, 255, 0.1),
+
+    0 8px 22px
+    rgba(0, 0, 0, 0.16);
+
   transition:
-    transform 0.15s ease,
-    background 0.15s ease;
+    transform 180ms ease,
+    background 180ms ease;
 }
 
 .soundButton:hover {
   transform: translateY(-2px);
 
-  background: rgba(255, 255, 255, 0.1);
+  background:
+    rgba(255, 255, 255, 0.11);
 }
 
-/* GAME */
+.soundButton:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* =========================================================
+   GAME
+   ========================================================= */
 
 .gameContainer {
-  width: min(1050px, calc(100% - 28px));
+  position: relative;
+  z-index: 1;
+
+  width:
+    min(
+      1050px,
+      calc(100% - 28px)
+    );
 
   margin: auto;
 
@@ -142,6 +251,7 @@ button {
   display: flex;
 
   align-items: flex-end;
+
   justify-content: space-between;
 
   gap: 20px;
@@ -150,23 +260,36 @@ button {
 .eyebrow {
   margin-bottom: 7px;
 
-  color: #67d9ff;
+  color: var(--accent);
 
   font-size: 11px;
+
   font-weight: 800;
 
   letter-spacing: 0.22em;
+
+  text-shadow:
+    0 0 18px
+    rgba(103, 217, 255, 0.35);
 }
 
 h1 {
   margin: 0;
 
   font-size:
-    clamp(36px, 7vw, 58px);
+    clamp(
+      36px,
+      7vw,
+      58px
+    );
 
   line-height: 0.95;
 
   letter-spacing: -0.045em;
+
+  text-shadow:
+    0 5px 25px
+    rgba(0, 0, 0, 0.28);
 }
 
 .heading p {
@@ -180,7 +303,9 @@ h1 {
   font-size: 14px;
 }
 
-/* STATS */
+/* =========================================================
+   STATS
+   ========================================================= */
 
 .stats {
   display: flex;
@@ -202,8 +327,8 @@ h1 {
   background:
     linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.07),
-      rgba(255, 255, 255, 0.025)
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.018)
     );
 
   border:
@@ -212,7 +337,10 @@ h1 {
 
   box-shadow:
     inset 0 1px
-    rgba(255, 255, 255, 0.05);
+    rgba(255, 255, 255, 0.06),
+
+    0 10px 30px
+    rgba(0, 0, 0, 0.12);
 }
 
 .stats span {
@@ -233,7 +361,9 @@ h1 {
   font-size: 14px;
 }
 
-/* CONTROLS */
+/* =========================================================
+   CONTROLS
+   ========================================================= */
 
 .actions {
   display: flex;
@@ -257,15 +387,27 @@ h1 {
     rgba(255, 255, 255, 0.12);
 
   background:
-    rgba(255, 255, 255, 0.06);
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.025)
+    );
 
   color: #eef7ff;
 
   cursor: pointer;
 
+  box-shadow:
+    inset 0 1px
+    rgba(255, 255, 255, 0.06),
+
+    0 8px 20px
+    rgba(0, 0, 0, 0.12);
+
   transition:
-    transform 0.15s ease,
-    background 0.15s ease;
+    transform 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .actions button:hover:not(:disabled) {
@@ -273,6 +415,14 @@ h1 {
 
   background:
     rgba(255, 255, 255, 0.1);
+
+  box-shadow:
+    0 10px 24px
+    rgba(0, 0, 0, 0.18);
+}
+
+.actions button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .actions button:disabled {
@@ -281,7 +431,9 @@ h1 {
   cursor: not-allowed;
 }
 
-/* BOARD */
+/* =========================================================
+   BOARD
+   ========================================================= */
 
 .board {
   display: flex;
@@ -293,7 +445,11 @@ h1 {
   align-items: flex-end;
 
   gap:
-    clamp(15px, 3vw, 30px);
+    clamp(
+      15px,
+      3vw,
+      30px
+    );
 
   padding:
     38px
@@ -303,7 +459,9 @@ h1 {
   min-height: 430px;
 }
 
-/* TUBE */
+/* =========================================================
+   TUBE BUTTON
+   ========================================================= */
 
 .tubeButton {
   position: relative;
@@ -322,22 +480,48 @@ h1 {
   touch-action: manipulation;
 
   transition:
-    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform
+    240ms
+    cubic-bezier(
+      0.2,
+      0.8,
+      0.2,
+      1
+    );
+
+  filter:
+    drop-shadow(
+      0 16px 17px
+      rgba(0, 0, 0, 0.2)
+    );
 }
 
 .tubeButton:hover {
-  transform: translateY(-5px);
+  transform:
+    translateY(-7px);
+}
+
+.tubeButton:active {
+  transform:
+    translateY(-2px)
+    scale(0.985);
 }
 
 .tubeButton.selected {
   transform:
-    translateY(-17px)
-    rotate(-2deg);
+    translateY(-18px)
+    rotate(-3deg);
+
+  filter:
+    drop-shadow(
+      0 20px 28px
+      rgba(0, 0, 0, 0.3)
+    );
 }
 
-/*
-  Realistic glass body.
-*/
+/* =========================================================
+   GLASS TUBE
+   ========================================================= */
 
 .tube {
   position: relative;
@@ -345,15 +529,38 @@ h1 {
   width: 78px;
   height: 250px;
 
-  display: flex;
-
-  flex-direction: column-reverse;
-
   overflow: hidden;
+
+  /*
+   * Transparent glass body.
+   */
+
+  background:
+    linear-gradient(
+      90deg,
+
+      rgba(255,255,255,0.025)
+      0%,
+
+      rgba(255,255,255,0.09)
+      15%,
+
+      rgba(255,255,255,0.025)
+      38%,
+
+      rgba(255,255,255,0.045)
+      68%,
+
+      rgba(255,255,255,0.015)
+      84%,
+
+      rgba(0,0,0,0.16)
+      100%
+    );
 
   border:
     2px solid
-    rgba(205, 235, 255, 0.42);
+    var(--glass-border);
 
   border-top: 0;
 
@@ -363,93 +570,213 @@ h1 {
     29px
     29px;
 
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.025),
-      rgba(255, 255, 255, 0.11) 42%,
-      rgba(255, 255, 255, 0.035) 75%,
-      rgba(0, 0, 0, 0.12)
-    );
+  /*
+   * Glass thickness + ambient shadow.
+   */
 
   box-shadow:
-    inset 8px 0 18px
-      rgba(255, 255, 255, 0.07),
 
-    inset -10px 0 18px
-      rgba(0, 0, 0, 0.22),
+    inset 5px 0 7px
+      rgba(255,255,255,0.14),
 
-    inset 0 -12px 15px
-      rgba(0, 0, 0, 0.12),
+    inset 11px 0 22px
+      rgba(255,255,255,0.045),
 
-    0 20px 38px
-      rgba(0, 0, 0, 0.3);
+    inset -8px 0 18px
+      rgba(0,0,0,0.25),
+
+    inset 0 -15px 18px
+      rgba(0,0,0,0.16),
+
+    0 18px 32px
+      rgba(0,0,0,0.27),
+
+    0 2px 5px
+      rgba(255,255,255,0.05);
 }
 
 /*
-  Glass rim.
-*/
+ * Outer glass edge.
+ */
+
+.tube::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  z-index: 8;
+
+  border-radius:
+    0
+    0
+    27px
+    27px;
+
+  border-left:
+    1px solid
+    rgba(255,255,255,0.18);
+
+  border-right:
+    1px solid
+    rgba(255,255,255,0.08);
+
+  box-shadow:
+    inset 2px 0 2px
+      rgba(255,255,255,0.12),
+
+    inset -2px 0 3px
+      rgba(0,0,0,0.12);
+}
+
+/*
+ * Glass optical overlay.
+ */
+
+.tube::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  z-index: 9;
+
+  border-radius:
+    0
+    0
+    27px
+    27px;
+
+  background:
+    linear-gradient(
+      90deg,
+
+      rgba(255,255,255,0.075)
+      0%,
+
+      rgba(255,255,255,0.018)
+      18%,
+
+      transparent
+      40%,
+
+      transparent
+      76%,
+
+      rgba(255,255,255,0.035)
+      100%
+    );
+}
+
+/* =========================================================
+   GLASS RIM
+   ========================================================= */
 
 .tubeRim {
   position: absolute;
 
   left: -3px;
-  top: -6px;
+  top: -7px;
 
   width: 80px;
-  height: 16px;
+  height: 17px;
 
   border:
     2px solid
-    rgba(215, 240, 255, 0.5);
+    rgba(220,242,255,0.55);
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(255,255,255,0.14),
+      rgba(120,190,225,0.035)
+      55%,
+      rgba(0,0,0,0.08)
+    );
+
+  box-shadow:
+
+    inset 0 2px 4px
+      rgba(255,255,255,0.26),
+
+    inset 0 -2px 3px
+      rgba(0,0,0,0.18),
+
+    0 0 9px
+      rgba(100,200,255,0.10);
+
+  z-index: 12;
+}
+
+/*
+ * Inner dark opening.
+ */
+
+.tubeRim::after {
+  content: "";
+
+  position: absolute;
+
+  left: 6px;
+  right: 6px;
+
+  top: 3px;
+
+  height: 6px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(0,0,0,0.12);
+
+  box-shadow:
+    inset 0 1px 2px
+      rgba(255,255,255,0.14);
+}
+
+/* =========================================================
+   GLASS REFLECTION
+   ========================================================= */
+
+.glassReflection {
+  position: absolute;
+
+  left: 8px;
+  top: 13px;
+
+  width: 7px;
+  height: 210px;
 
   border-radius: 50%;
 
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.16),
-      rgba(160, 220, 255, 0.035)
-    );
 
-  box-shadow:
-    inset 0 2px 4px
-      rgba(255, 255, 255, 0.18),
+      rgba(255,255,255,0.58),
 
-    0 0 10px
-      rgba(100, 200, 255, 0.08);
+      rgba(255,255,255,0.25)
+      30%,
 
-  z-index: 5;
-}
+      rgba(255,255,255,0.08)
+      62%,
 
-/*
-  Strong glass reflection.
-*/
-
-.glassReflection {
-  position: absolute;
-
-  left: 9px;
-  top: 12px;
-
-  width: 7px;
-  height: 210px;
-
-  border-radius: 10px;
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.55),
-      rgba(255, 255, 255, 0.08),
       transparent
     );
 
-  opacity: 0.55;
+  opacity: 0.56;
 
-  filter: blur(0.4px);
+  filter: blur(0.5px);
 
-  z-index: 6;
+  z-index: 11;
 
   pointer-events: none;
 }
@@ -459,110 +786,213 @@ h1 {
 
   position: absolute;
 
-  left: 16px;
-  top: 20px;
+  left: 13px;
+  top: 16px;
 
   width: 3px;
-  height: 120px;
+  height: 125px;
 
   border-radius: 50%;
 
   background:
-    rgba(255, 255, 255, 0.18);
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,0.25),
+      transparent
+    );
 }
-/* WATER */
+
+/* =========================================================
+   WATER CONTAINER
+   ========================================================= */
 
 .water {
   position: absolute;
+
   left: 3px;
   right: 3px;
+
   top: 7px;
   bottom: 3px;
 
   overflow: hidden;
-  border-radius: 0 0 23px 23px;
-
-  z-index: 2;
-}
-
-/*
-  IMPORTANT:
-  Liquid is anchored from the BOTTOM.
-
-  Layer 1 = bottom
-  Layer 2 = above
-  Layer 3 = above
-  Layer 4 = top
-*/
-
-.waterLayer {
-  position: absolute;
-
-  left: 0;
-  right: 0;
-
-  height: 25%;
-
-  margin: 0;
-  padding: 0;
-  border: 0;
-
-  overflow: hidden;
-
-  box-shadow:
-    inset 0 4px 8px rgba(255,255,255,.14),
-    inset 0 -8px 14px rgba(0,0,0,.18);
-
-  transform-origin: center bottom;
-
-  animation:
-    waterSettle
-    .35s
-    cubic-bezier(.22,1,.36,1)
-    both;
-}
-
-/* Bottom liquid */
-.waterLayer:nth-child(1) {
-  bottom: 0;
 
   border-radius:
     0
     0
-    22px
-    22px;
+    24px
+    24px;
+
+  z-index: 2;
+
+  /*
+   * Adds a tiny amount of depth to
+   * saturated liquid colors.
+   */
+
+  filter:
+    saturate(1.08)
+    contrast(1.015);
 }
 
-/* Second liquid */
+/* =========================================================
+   LIQUID LAYERS
+   ========================================================= */
+
+.waterLayer {
+  position: absolute;
+
+  left: -1px;
+  right: -1px;
+
+  /*
+   * Four equal physical sections.
+   */
+
+  height: 25.5%;
+
+  overflow: hidden;
+
+  border: 0;
+
+  /*
+   * IMPORTANT:
+   *
+   * --liquid-color comes from React.
+   */
+
+  background:
+    linear-gradient(
+      90deg,
+
+      rgba(0,0,0,0.20)
+      0%,
+
+      rgba(255,255,255,0.13)
+      17%,
+
+      rgba(255,255,255,0.025)
+      43%,
+
+      rgba(255,255,255,0.055)
+      68%,
+
+      rgba(0,0,0,0.20)
+      100%
+    ),
+    var(--liquid-color);
+
+  /*
+   * 3D liquid shading.
+   */
+
+  box-shadow:
+
+    inset 5px 0 7px
+      rgba(255,255,255,0.11),
+
+    inset -7px 0 11px
+      rgba(0,0,0,0.18),
+
+    inset 0 4px 7px
+      rgba(255,255,255,0.11),
+
+    inset 0 -7px 11px
+      rgba(0,0,0,0.14);
+
+  transform-origin:
+    center
+    bottom;
+}
+
+/* =========================================================
+   WATER POSITION
+   ========================================================= */
+
+.waterLayer:nth-child(1) {
+  bottom: -1px;
+
+  border-radius:
+    0
+    0
+    23px
+    23px;
+}
+
 .waterLayer:nth-child(2) {
-  bottom: 25%;
+  bottom: 24.4%;
 }
 
-/* Third liquid */
 .waterLayer:nth-child(3) {
-  bottom: 50%;
+  bottom: 48.9%;
 }
 
-/* Top liquid */
 .waterLayer:nth-child(4) {
-  bottom: 75%;
+  bottom: 73.4%;
 }
 
 /*
-  Curved water surface.
-  Only the highest layer should
-  look like the exposed surface.
-*/
+ * Tiny overlap so adjacent colors
+ * physically meet with NO gap.
+ */
 
-.waterLayer:last-child::before {
+.waterLayer + .waterLayer {
+  margin-bottom: -2px;
+}
+
+/* =========================================================
+   LIQUID INTERNAL LIGHT
+   ========================================================= */
+
+.waterLayer::after {
   content: "";
 
   position: absolute;
 
-  left: -5%;
-  width: 110%;
+  left: 5%;
 
-  top: -2px;
+  top: 5%;
+
+  width: 26%;
+
+  height: 90%;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      90deg,
+
+      rgba(255,255,255,0.25),
+
+      rgba(255,255,255,0.09)
+      38%,
+
+      transparent
+    );
+
+  filter: blur(3px);
+
+  opacity: 0.82;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   COLOR SEAMS
+   ========================================================= */
+
+.waterLayer + .waterLayer::before {
+  content: "";
+
+  position: absolute;
+
+  left: -3%;
+
+  width: 106%;
+
+  top: -3px;
+
   height: 8px;
 
   border-radius: 50%;
@@ -570,117 +1000,115 @@ h1 {
   background:
     linear-gradient(
       180deg,
-      rgba(255,255,255,.42),
-      rgba(255,255,255,.10)
+
+      rgba(255,255,255,0.12),
+
+      rgba(255,255,255,0.025),
+
+      transparent
     );
 
-  box-shadow:
-    0 1px 4px rgba(255,255,255,.2);
+  filter: blur(1px);
 
-  animation:
-    waterSurface
-    1.8s
-    ease-in-out
-    infinite;
+  pointer-events: none;
 }
 
-/*
-  Internal liquid reflection.
-*/
+/* =========================================================
+   WATER SURFACE
+   ========================================================= */
 
-.waterLayer::after {
+.waterLayer:last-child::before {
   content: "";
 
   position: absolute;
 
-  left: 7%;
-  top: 8%;
+  left: -13%;
 
-  width: 34%;
-  height: 72%;
+  width: 126%;
+
+  top: -6px;
+
+  height: 14px;
 
   border-radius: 50%;
 
   background:
-    linear-gradient(
-      90deg,
-      rgba(255,255,255,.22),
-      rgba(255,255,255,.06),
+    radial-gradient(
+      ellipse at center,
+
+      rgba(255,255,255,0.40)
+      0%,
+
+      rgba(255,255,255,0.19)
+      24%,
+
+      rgba(255,255,255,0.06)
+      53%,
+
       transparent
+      76%
     );
 
-  filter: blur(3px);
+  box-shadow:
+    0 1px 5px
+    rgba(255,255,255,0.22);
 
-  opacity: .75;
+  animation:
+    waterSurface
+    2.2s
+    ease-in-out
+    infinite;
 }
 
-/*
-  Water wobble when selected.
-*/
+/* =========================================================
+   SELECTED TUBE WATER
+   ========================================================= */
 
-.tubeButton.selected .waterLayer {
+.tubeButton.selected
+.waterLayer {
   animation:
     waterWobble
-    .75s
+    900ms
     ease-in-out
     infinite;
 }
 
 .tubeButton.selected
 .waterLayer:nth-child(2) {
-  animation-delay: .025s;
+  animation-delay: 40ms;
 }
 
 .tubeButton.selected
 .waterLayer:nth-child(3) {
-  animation-delay: .05s;
+  animation-delay: 80ms;
 }
 
 .tubeButton.selected
 .waterLayer:nth-child(4) {
-  animation-delay: .075s;
+  animation-delay: 120ms;
 }
 
-/* Water settling */
-
-@keyframes waterSettle {
-
-  from {
-    transform:
-      translateY(-5px)
-      scaleY(.96);
-
-    opacity: .55;
-  }
-
-  to {
-    transform:
-      translateY(0)
-      scaleY(1);
-
-    opacity: 1;
-  }
-}
-
-/* Natural surface movement */
+/* =========================================================
+   WATER ANIMATIONS
+   ========================================================= */
 
 @keyframes waterSurface {
 
   0%,
   100% {
     transform:
-      translateX(-1%)
+      translateX(-2px)
+      rotate(-0.35deg)
       scaleX(1);
   }
 
   50% {
     transform:
-      translateX(1%)
-      scaleX(1.025);
+      translateX(2px)
+      rotate(0.35deg)
+      scaleX(1.035);
   }
 }
-
-/* Small liquid wobble */
 
 @keyframes waterWobble {
 
@@ -688,29 +1116,35 @@ h1 {
   100% {
     transform:
       translateX(0)
-      skewX(0deg);
+      skewX(0deg)
+      scaleY(1);
   }
 
   25% {
     transform:
       translateX(1px)
-      skewX(.35deg);
+      skewX(0.55deg)
+      scaleY(1.004);
   }
 
   50% {
     transform:
       translateX(-1px)
-      skewX(-.35deg);
+      skewX(-0.55deg)
+      scaleY(0.996);
   }
 
   75% {
     transform:
-      translateX(.6px)
-      skewX(.2deg);
+      translateX(0.6px)
+      skewX(0.3deg)
+      scaleY(1.002);
   }
 }
 
-/* TUBE NUMBER */
+/* =========================================================
+   TUBE NUMBER
+   ========================================================= */
 
 .tubeNumber {
   position: absolute;
@@ -729,7 +1163,9 @@ h1 {
   letter-spacing: 0.08em;
 }
 
-/* INSTRUCTION */
+/* =========================================================
+   INSTRUCTION
+   ========================================================= */
 
 .instruction {
   text-align: center;
@@ -741,7 +1177,9 @@ h1 {
   margin-top: 2px;
 }
 
-/* WIN */
+/* =========================================================
+   WIN PANEL
+   ========================================================= */
 
 .winPanel {
   position: fixed;
@@ -769,19 +1207,27 @@ h1 {
     rgba(120, 220, 255, 0.28);
 
   background:
-    rgba(7, 19, 34, 0.94);
+    linear-gradient(
+      145deg,
+      rgba(15, 34, 55, 0.96),
+      rgba(5, 15, 27, 0.96)
+    );
 
   backdrop-filter:
-    blur(20px);
+    blur(22px);
 
   box-shadow:
+
     0 30px 90px
-      rgba(0, 0, 0, 0.5),
+      rgba(0,0,0,0.5),
 
     0 0 50px
-      rgba(40, 190, 255, 0.08);
+      rgba(40,190,255,0.08),
 
-  z-index: 20;
+    inset 0 1px
+      rgba(255,255,255,0.08);
+
+  z-index: 30;
 
   animation:
     winAppear
@@ -798,6 +1244,10 @@ h1 {
   letter-spacing: 10px;
 
   margin-bottom: 9px;
+
+  text-shadow:
+    0 0 20px
+    rgba(125,226,255,0.45);
 }
 
 .complete {
@@ -853,17 +1303,23 @@ h1 {
 
   box-shadow:
     0 8px 25px
-      rgba(42, 160, 255, 0.22);
+    rgba(42,160,255,0.22),
+
+    inset 0 1px
+    rgba(255,255,255,0.25);
 
   transition:
-    transform 0.15s ease;
+    transform 150ms ease;
 }
 
 .winPanel button:hover {
-  transform: translateY(-2px);
+  transform:
+    translateY(-2px);
 }
 
-/* FOOTER */
+/* =========================================================
+   FOOTER
+   ========================================================= */
 
 footer {
   display: flex;
@@ -882,23 +1338,12 @@ footer {
   font-size: 10px;
 }
 
-/* ANIMATIONS */
-
-@keyframes waterAppear {
-  from {
-    transform: translateY(9px);
-
-    opacity: 0.5;
-  }
-
-  to {
-    transform: translateY(0);
-
-    opacity: 1;
-  }
-}
+/* =========================================================
+   WIN ANIMATION
+   ========================================================= */
 
 @keyframes winAppear {
+
   from {
     opacity: 0;
 
@@ -916,9 +1361,12 @@ footer {
   }
 }
 
-/* MOBILE */
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
 @media (max-width: 650px) {
+
   .gameContainer {
     padding-top: 30px;
   }
@@ -961,19 +1409,22 @@ footer {
     width: 66px;
   }
 
-  .tubeButton {
-    padding:
-      0
-      2px
-      20px;
-  }
-
   .glassReflection {
     height: 175px;
   }
 }
 
+/* =========================================================
+   SMALL PHONES
+   ========================================================= */
+
 @media (max-width: 390px) {
+
+  .gameContainer {
+    width:
+      calc(100% - 18px);
+  }
+
   .tube {
     width: 58px;
 
@@ -986,5 +1437,31 @@ footer {
 
   .board {
     gap: 8px;
+  }
+
+  .stats div {
+    min-width: 0;
+
+    padding:
+      9px
+      7px;
+  }
+}
+
+/* =========================================================
+   REDUCE MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+
+    scroll-behavior: auto !important;
+
+    transition-duration: 0.001ms !important;
   }
   }
