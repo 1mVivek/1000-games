@@ -1367,7 +1367,6 @@ disabled={
   </span>
 </button>
 )}
-)}
 
 {pouring && (
   <div
