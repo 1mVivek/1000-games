@@ -8,12 +8,12 @@ import {
   type CSSProperties,
 } from "react";
 
-type Tube = number[];
+type TubeState = number[];
 
 type Move = {
   from: number;
   to: number;
-  previous: Tube[];
+  previous: TubeState[];
 };
 
 type PourAnimation = {
@@ -55,7 +55,9 @@ function random(seed: number): number {
   return x - Math.floor(x);
 }
 
-function topRun(tube: Tube): number {
+function topRun(
+  tube: TubeState
+): number {
   if (tube.length === 0) return 0;
 
   const color =
@@ -77,7 +79,7 @@ function topRun(tube: Tube): number {
 }
 
 function isSolved(
-  tubes: Tube[]
+  tubes: TubeState[]
 ): boolean {
   return tubes.every(
     (tube) =>
@@ -99,7 +101,7 @@ function isSolved(
  */
 function generateLevel(
   level: number
-): Tube[] {
+): TubeState[] {
   const colors = Math.min(
     3 +
       Math.floor(
@@ -115,7 +117,7 @@ function generateLevel(
         ? 3
         : 4;
 
-  const tubes: Tube[] = [];
+  const tubes: TubeState[] = [];
 
   /*
    * Solved starting state.
@@ -269,12 +271,22 @@ function generateLevel(
           candidates.length
       );
 
+    /*
+     * Explicitly validate the indexed
+     * candidate before destructuring.
+     */
+    const candidate =
+      candidates[index];
+
+    if (!candidate) {
+      break;
+    }
+
     const [
       from,
       to,
       amount,
-    ] =
-      candidates[index];
+    ] = candidate;
 
     const moved =
       tubes[from].splice(
@@ -352,7 +364,7 @@ function generateLevel(
 }
 
 function canPour(
-  tubes: Tube[],
+  tubes: TubeState[],
   from: number,
   to: number
 ): boolean {
@@ -396,10 +408,10 @@ function canPour(
 }
 
 function pour(
-  tubes: Tube[],
+  tubes: TubeState[],
   from: number,
   to: number
-): Tube[] | null {
+): TubeState[] | null {
   if (
     !canPour(
       tubes,
@@ -447,12 +459,12 @@ function pour(
 /*
  * IMPORTANT:
  *
- * tube is a SINGLE Tube.
+ * tube is a SINGLE TubeState.
  *
- * Not Tube[].
+ * Not TubeState[].
  */
 function tubeMarkup(
-  tube: Tube,
+  tube: TubeState,
   tubeIndex: number
 ) {
   return tube.map(
@@ -491,7 +503,7 @@ export default function WaterSorter() {
     useState(1);
 
   const [tubes, setTubes] =
-    useState<Tube[]>(() =>
+    useState<TubeState[]>(() =>
       generateLevel(1)
     );
 
@@ -540,14 +552,10 @@ export default function WaterSorter() {
     );
 
   const animationTimer =
-    useRef<number | null>(
-      null
-    );
+    useRef<number | null>(null);
 
   const receivingTimer =
-    useRef<number | null>(
-      null
-    );
+    useRef<number | null>(null);
 
   const difficulty =
     useMemo(() => {
@@ -857,7 +865,6 @@ export default function WaterSorter() {
       streamLength,
     };
   }
-
   function handleTubeClick(
     index: number
   ) {
@@ -1312,173 +1319,176 @@ export default function WaterSorter() {
             ) => (
               <button
                 key={index}
-              ref={(element) => {
-  tubeRefs.current[
-    index
-  ] = element;
-}}
-className={[
-  "tubeButton",
+                ref={(element) => {
+                  tubeRefs.current[
+                    index
+                  ] = element;
+                }}
+                className={[
+                  "tubeButton",
 
-  selected ===
-  index
-    ? "selected"
-    : "",
+                  selected ===
+                  index
+                    ? "selected"
+                    : "",
 
-  receiving ===
-  index
-    ? "receiving"
-    : "",
+                  receiving ===
+                  index
+                    ? "receiving"
+                    : "",
 
-  pouring?.from ===
-  index
-    ? "sourceHidden"
-    : "",
-]
-  .filter(Boolean)
-  .join(" ")}
-onClick={() =>
-  handleTubeClick(
-    index
-  )
-}
-aria-label={`Tube ${
-  index + 1
-}`}
-disabled={
-  pouring !== null
-}
->
-  <div className="tube">
-    <div className="tubeRim" />
+                  pouring?.from ===
+                  index
+                    ? "sourceHidden"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onClick={() =>
+                  handleTubeClick(
+                    index
+                  )
+                }
+                aria-label={`Tube ${
+                  index + 1
+                }`}
+                disabled={
+                  pouring !== null
+                }
+              >
+                <div className="tube">
+                  <div className="tubeRim" />
 
-    <div className="glassReflection" />
+                  <div className="glassReflection" />
 
-    <div className="water">
-      {tubeMarkup(
-        tube,
-        index
-      )}
-    </div>
-  </div>
+                  <div className="water">
+                    {tubeMarkup(
+                      tube,
+                      index
+                    )}
+                  </div>
+                </div>
 
-  <span className="tubeNumber">
-    {index + 1}
-  </span>
-</button>
-              
-)}
+                <span className="tubeNumber">
+                  {index + 1}
+                </span>
+              </button>
+            )
+          )}
 
-{pouring && (
-  <div
-    className="pourScene"
-    aria-hidden="true"
-  >
-    <div
-      className="pourGhost"
-      style={{
-        left:
-          `${pouring.left}px`,
-        top:
-          `${pouring.top}px`,
+          {pouring && (
+            <div
+              className="pourScene"
+              aria-hidden="true"
+            >
+              <div
+                className="pourGhost"
+                style={{
+                  left:
+                    `${pouring.left}px`,
+                  top:
+                    `${pouring.top}px`,
 
-        "--pour-x":
-          `${pouring.moveX}px`,
+                  "--pour-x":
+                    `${pouring.moveX}px`,
 
-        "--pour-y":
-          `${pouring.moveY}px`,
+                  "--pour-y":
+                    `${pouring.moveY}px`,
 
-        "--pour-angle":
-          `${pouring.angle}deg`,
+                  "--pour-angle":
+                    `${pouring.angle}deg`,
 
-        "--stream-x":
-          `${pouring.streamX}px`,
+                  "--stream-x":
+                    `${pouring.streamX}px`,
 
-        "--stream-y":
-          `${pouring.streamY}px`,
+                  "--stream-y":
+                    `${pouring.streamY}px`,
 
-        "--stream-length":
-          `${pouring.streamLength}px`,
-      } as CSSProperties}
-    >
-      <div className="tube">
-        <div className="tubeRim" />
+                  "--stream-length":
+                    `${pouring.streamLength}px`,
+                } as CSSProperties}
+              >
+                <div className="tube">
+                  <div className="tubeRim" />
 
-        <div className="glassReflection" />
+                  <div className="glassReflection" />
 
-        <div className="water">
-          {tubeMarkup(
-            tubes[
-              pouring.from
-            ],
-            pouring.from
+                  <div className="water">
+                    {tubeMarkup(
+                      tubes[
+                        pouring.from
+                      ],
+                      pouring.from
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className="pourStream"
+                  style={{
+                    "--liquid-color":
+                      COLORS[
+                        pouring.color
+                      ],
+                  } as CSSProperties}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="instruction">
+            Tap a tube, then tap another
+            tube to pour.
+          </div>
+
+          {won && (
+            <div className="winPanel">
+              <div className="stars">
+                ★ ★ ★
+              </div>
+
+              <div className="complete">
+                LEVEL COMPLETE
+              </div>
+
+              <h2>
+                Perfectly sorted!
+              </h2>
+
+              <p>
+                Level {level} ·{" "}
+                {moves} moves
+              </p>
+
+              <button
+                onClick={
+                  nextLevel
+                }
+              >
+                Next Level →
+              </button>
+            </div>
           )}
         </div>
-      </div>
+      </section>
 
-      <div
-        className="pourStream"
-        style={{
-          "--liquid-color":
-            COLORS[
-              pouring.color
-            ],
-        } as CSSProperties}
-      />
-    </div>
-  </div>
-)}
+      <footer>
+        <span>
+          ♾ Infinite Levels
+        </span>
 
-<div className="instruction">
-  Tap a tube, then tap another
-  tube to pour.
-</div>
+        <span>•</span>
 
-{won && (
-  <div className="winPanel">
-    <div className="stars">
-      ★ ★ ★
-    </div>
+        <span>
+          Procedural Generation
+        </span>
 
-    <div className="complete">
-      LEVEL COMPLETE
-    </div>
+        <span>•</span>
 
-    <h2>
-      Perfectly sorted!
-    </h2>
-
-    <p>
-      Level {level} ·{" "}
-      {moves} moves
-    </p>
-
-    <button
-      onClick={
-        nextLevel
-      }
-    >
-      Next Level →
-    </button>
-  </div>
-)}
-</section>
-
-<footer>
-  <span>
-    ♾ Infinite Levels
-  </span>
-
-  <span>•</span>
-
-  <span>
-    Procedural Generation
-  </span>
-
-  <span>•</span>
-
-  <span>
-    Sound FX
-  </span>
-</footer>
-</main>
+        <span>
+          Sound FX
+        </span>
+      </footer>
+    </main>
+  );
+        }
