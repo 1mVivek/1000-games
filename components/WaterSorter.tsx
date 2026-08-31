@@ -1,12 +1,7 @@
 
 "use client";
 
-import {
-  CSSProperties,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useMemo, useRef, useState } from "react";
 
 type Tube = number[];
 
@@ -21,7 +16,10 @@ type PourAnimation = {
   to: number;
   color: number;
   angle: number;
-  streamAngle: number;
+  moveX: number;
+  moveY: number;
+  streamX: number;
+  streamY: number;
   streamLength: number;
 };
 
@@ -44,10 +42,9 @@ function random(seed: number) {
 }
 
 function topRun(tube: Tube): number {
-  if (tube.length === 0) return 0;
+  if (!tube.length) return 0;
 
   const color = tube[tube.length - 1];
-
   let count = 0;
 
   for (let i = tube.length - 1; i >= 0; i--) {
@@ -74,21 +71,12 @@ function generateLevel(level: number): Tube[] {
   );
 
   const emptyTubes =
-    level < 15
-      ? 2
-      : level < 50
-        ? 3
-        : 4;
+    level < 15 ? 2 : level < 50 ? 3 : 4;
 
   const tubes: Tube[] = [];
 
   for (let color = 0; color < colors; color++) {
-    tubes.push([
-      color,
-      color,
-      color,
-      color,
-    ]);
+    tubes.push([color, color, color, color]);
   }
 
   for (let i = 0; i < emptyTubes; i++) {
@@ -102,40 +90,24 @@ function generateLevel(level: number): Tube[] {
 
   let seed = level * 7919 + 17;
 
-  for (
-    let step = 0;
-    step < targetMoves;
-    step++
-  ) {
+  for (let step = 0; step < targetMoves; step++) {
     const candidates: Array<
       [number, number, number]
     > = [];
 
-    for (
-      let from = 0;
-      from < tubes.length;
-      from++
-    ) {
+    for (let from = 0; from < tubes.length; from++) {
       const source = tubes[from];
 
       if (!source.length) continue;
 
-      const color =
-        source[source.length - 1];
-
+      const color = source[source.length - 1];
       const run = topRun(source);
 
-      for (
-        let to = 0;
-        to < tubes.length;
-        to++
-      ) {
+      for (let to = 0; to < tubes.length; to++) {
         if (from === to) continue;
 
         const target = tubes[to];
-
-        const free =
-          CAPACITY - target.length;
+        const free = CAPACITY - target.length;
 
         if (free <= 0) continue;
 
@@ -147,9 +119,7 @@ function generateLevel(level: number): Tube[] {
         }
 
         const maxAmount =
-          source.length === run
-            ? run
-            : run - 1;
+          source.length === run ? run : run - 1;
 
         if (maxAmount <= 0) continue;
 
@@ -163,11 +133,7 @@ function generateLevel(level: number): Tube[] {
           amount <= max;
           amount++
         ) {
-          candidates.push([
-            from,
-            to,
-            amount,
-          ]);
+          candidates.push([from, to, amount]);
         }
       }
     }
@@ -175,31 +141,55 @@ function generateLevel(level: number): Tube[] {
     if (!candidates.length) break;
 
     const index = Math.floor(
-      random(
-        seed +
-          step * 31
-      ) *
+      random(seed + step * 31) *
         candidates.length
     );
 
-    const [
-      from,
-      to,
-      amount,
-    ] = candidates[index];
+    const [from, to, amount] =
+      candidates[index];
 
-    const moved =
-      tubes[from].splice(
-        tubes[from].length - amount,
-        amount
-      );
+    const moved = tubes[from].splice(
+      tubes[from].length - amount,
+      amount
+    );
 
     tubes[to].push(...moved);
 
     seed =
-      (seed * 1664525 +
-        1013904223) >>>
-      0;
+      (seed * 1664525 + 1013904223) >>> 0;
+  }
+
+  if (isSolved(tubes)) {
+    for (
+      let extra = 0;
+      extra < 100 && isSolved(tubes);
+      extra++
+    ) {
+      const from = extra % colors;
+      const to =
+        colors + (extra % emptyTubes);
+
+      if (
+        !tubes[from].length ||
+        tubes[to].length >= CAPACITY
+      ) {
+        continue;
+      }
+
+      const amount = Math.min(
+        topRun(tubes[from]),
+        CAPACITY - tubes[to].length
+      );
+
+      if (!amount) continue;
+
+      const moved = tubes[from].splice(
+        tubes[from].length - amount,
+        amount
+      );
+
+      tubes[to].push(...moved);
+    }
   }
 
   return tubes;
@@ -216,14 +206,9 @@ function canPour(
   const target = tubes[to];
 
   if (!source.length) return false;
+  if (target.length >= CAPACITY) return false;
 
-  if (target.length >= CAPACITY) {
-    return false;
-  }
-
-  if (target.length === 0) {
-    return true;
-  }
+  if (target.length === 0) return true;
 
   return (
     source[source.length - 1] ===
@@ -246,156 +231,56 @@ function pour(
 
   const amount = Math.min(
     topRun(next[from]),
-    CAPACITY -
-      next[to].length
+    CAPACITY - next[to].length
   );
 
-  const moved =
-    next[from].splice(
-      next[from].length - amount,
-      amount
-    );
+  const moved = next[from].splice(
+    next[from].length - amount,
+    amount
+  );
 
   next[to].push(...moved);
 
   return next;
 }
 
-function getPourGeometry(
-  fromElement: HTMLElement,
-  toElement: HTMLElement
-) {
-  const source =
-    fromElement.getBoundingClientRect();
-
-  const target =
-    toElement.getBoundingClientRect();
-
-  const sourceX =
-    source.left +
-    source.width / 2;
-
-  const sourceY =
-    source.top + 8;
-
-  const targetX =
-    target.left +
-    target.width / 2;
-
-  const targetY =
-    target.top + 10;
-
-  const dx =
-    targetX - sourceX;
-
-  const dy =
-    targetY - sourceY;
-
-  const distance =
-    Math.sqrt(
-      dx * dx +
-        dy * dy
-    );
-
-  /*
-   * Tube tilt is deliberately limited.
-   * This keeps the tube looking physical
-   * instead of flipping sideways.
-   */
-  const angle =
-    Math.max(
-      -48,
-      Math.min(
-        48,
-        dx >= 0
-          ? 38
-          : -38
-      )
-    );
-
-  /*
-   * A stream is vertical by default.
-   * Convert it into the direction
-   * between source and target.
-   */
-  const streamAngle =
-    Math.atan2(
-      dy,
-      dx
-    ) *
-      (180 / Math.PI) -
-    90;
-
-  return {
-    angle,
-    streamAngle,
-    streamLength:
-      Math.max(
-        55,
-        Math.min(
-          170,
-          distance
-        )
-      ),
-  };
-}
-
 export default function WaterSorter() {
-  const [level, setLevel] =
-    useState(1);
+  const [level, setLevel] = useState(1);
 
-  const [tubes, setTubes] =
-    useState<Tube[]>(() =>
-      generateLevel(1)
-    );
+  const [tubes, setTubes] = useState<Tube[]>(
+    () => generateLevel(1)
+  );
 
   const [selected, setSelected] =
-    useState<number | null>(
-      null
-    );
+    useState<number | null>(null);
 
-  const [moves, setMoves] =
-    useState(0);
+  const [moves, setMoves] = useState(0);
 
   const [history, setHistory] =
     useState<Move[]>([]);
 
-  const [won, setWon] =
-    useState(false);
+  const [won, setWon] = useState(false);
 
-  const [muted, setMuted] =
-    useState(false);
+  const [muted, setMuted] = useState(false);
 
-  const [pourAnimation, setPourAnimation] =
-    useState<PourAnimation | null>(
-      null
-    );
-
-  const tubeRefs =
-    useRef<Array<HTMLButtonElement | null>>(
-      []
-    );
+  const [pouring, setPouring] =
+    useState<PourAnimation | null>(null);
 
   const audioContext =
-    useRef<AudioContext | null>(
-      null
-    );
+    useRef<AudioContext | null>(null);
 
-  const difficulty =
-    useMemo(() => {
-      if (level < 8) return "EASY";
-      if (level < 25) return "NORMAL";
-      if (level < 60) return "HARD";
+  const tubeRefs =
+    useRef<Array<HTMLButtonElement | null>>([]);
 
-      return "EXPERT";
-    }, [level]);
+  const difficulty = useMemo(() => {
+    if (level < 8) return "EASY";
+    if (level < 25) return "NORMAL";
+    if (level < 60) return "HARD";
+    return "EXPERT";
+  }, [level]);
 
   function sound(
-    type:
-      | "tap"
-      | "pour"
-      | "bad"
-      | "win"
+    type: "tap" | "pour" | "bad" | "win"
   ) {
     if (muted) return;
 
@@ -415,37 +300,31 @@ export default function WaterSorter() {
           new AudioContextClass();
       }
 
-      const ctx =
-        audioContext.current;
+      const ctx = audioContext.current;
 
-      if (
-        ctx.state ===
-        "suspended"
-      ) {
+      if (ctx.state === "suspended") {
         void ctx.resume();
       }
 
       const oscillator =
         ctx.createOscillator();
 
-      const gain =
-        ctx.createGain();
+      const gain = ctx.createGain();
 
       oscillator.connect(gain);
-
-      gain.connect(
-        ctx.destination
-      );
+      gain.connect(ctx.destination);
 
       const frequencies = {
         tap: 430,
-        pour: 190,
-        bad: 110,
+        pour: 205,
+        bad: 120,
         win: 720,
       };
 
-      oscillator.frequency.value =
-        frequencies[type];
+      oscillator.frequency.setValueAtTime(
+        frequencies[type],
+        ctx.currentTime
+      );
 
       oscillator.type =
         type === "bad"
@@ -454,15 +333,10 @@ export default function WaterSorter() {
             ? "triangle"
             : "sine";
 
-      const now =
-        ctx.currentTime;
+      const now = ctx.currentTime;
 
       const duration =
-        type === "pour"
-          ? 0.35
-          : type === "win"
-            ? 0.45
-            : 0.12;
+        type === "pour" ? 0.32 : 0.12;
 
       gain.gain.setValueAtTime(
         0.0001,
@@ -470,9 +344,7 @@ export default function WaterSorter() {
       );
 
       gain.gain.exponentialRampToValueAtTime(
-        type === "pour"
-          ? 0.045
-          : 0.06,
+        type === "pour" ? 0.08 : 0.06,
         now + 0.015
       );
 
@@ -482,253 +354,251 @@ export default function WaterSorter() {
       );
 
       oscillator.start(now);
-
-      oscillator.stop(
-        now + duration
-      );
+      oscillator.stop(now + duration);
     } catch {
-      // Audio must never break gameplay.
+      // Audio is optional.
     }
   }
 
-  function handleTubeClick(
-    index: number
-  ) {
-    if (won) return;
+  function getPourAnimation(
+    from: number,
+    to: number
+  ): PourAnimation {
+    const source =
+      tubeRefs.current[from];
+
+    const target =
+      tubeRefs.current[to];
+
+    if (!source || !target) {
+      return {
+        from,
+        to,
+        color: tubes[from][tubes[from].length - 1],
+        angle: to > from ? 48 : -48,
+        moveX: to > from ? 100 : -100,
+        moveY: -35,
+        streamX: to > from ? 65 : -65,
+        streamY: 80,
+        streamLength: 120,
+      };
+    }
+
+    const sourceRect =
+      source.getBoundingClientRect();
+
+    const targetRect =
+      target.getBoundingClientRect();
+
+    const sourceX =
+      sourceRect.left +
+      sourceRect.width / 2;
+
+    const sourceY =
+      sourceRect.top + 10;
+
+    const targetX =
+      targetRect.left +
+      targetRect.width / 2;
+
+    const targetY =
+      targetRect.top + 12;
+
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+
+    const direction = dx >= 0 ? 1 : -1;
 
     /*
-     * Currently animating a pour.
-     * Ignore additional taps until
-     * the physical animation finishes.
+     * Move the tube substantially toward
+     * the receiving tube instead of merely
+     * rotating it in place.
      */
-    if (pourAnimation) return;
+    const moveX =
+      dx * 0.72;
+
+    /*
+     * Lift the tube while moving.
+     * This creates the "pick up -> swing ->
+     * pour -> return" feeling.
+     */
+    const moveY =
+      Math.min(
+        -34,
+        dy * 0.18 - 28
+      );
+
+    /*
+     * Stronger physical tilt.
+     */
+    const distance =
+      Math.sqrt(dx * dx + dy * dy);
+
+    const angle = Math.min(
+      58,
+      Math.max(
+        42,
+        38 + distance * 0.025
+      )
+    ) * direction;
+
+    /*
+     * Stream geometry.
+     */
+    const streamX =
+      dx * 0.34;
+
+    const streamY =
+      Math.max(
+        80,
+        Math.abs(dy) * 0.35 + 75
+      );
+
+    const streamLength =
+      Math.min(
+        190,
+        Math.max(
+          105,
+          distance * 0.58
+        )
+      );
+
+    return {
+      from,
+      to,
+      color: tubes[from][
+        tubes[from].length - 1
+      ],
+      angle,
+      moveX,
+      moveY,
+      streamX,
+      streamY,
+      streamLength,
+    };
+  }
+
+  function handleTubeClick(index: number) {
+    if (won || pouring) return;
 
     if (selected === null) {
-      if (
-        tubes[index].length === 0
-      ) {
-        return;
-      }
+      if (!tubes[index].length) return;
 
       setSelected(index);
-
       sound("tap");
-
       return;
     }
 
     if (selected === index) {
       setSelected(null);
-
       return;
     }
 
-    const from =
-      selected;
+    const from = selected;
 
-    const sourceElement =
-      tubeRefs.current[from];
-
-    const targetElement =
-      tubeRefs.current[index];
-
-    if (
-      !sourceElement ||
-      !targetElement
-    ) {
+    if (!canPour(tubes, from, index)) {
+      sound("bad");
       setSelected(null);
-
       return;
     }
 
-    const next =
-      pour(
+    const animation =
+      getPourAnimation(from, index);
+
+    setPouring(animation);
+    setSelected(null);
+
+    sound("pour");
+
+    window.setTimeout(() => {
+      const next = pour(
         tubes,
         from,
         index
       );
 
-    if (!next) {
-      sound("bad");
+      if (!next) {
+        setPouring(null);
+        return;
+      }
 
-      setSelected(null);
-
-      return;
-    }
-
-    const geometry =
-      getPourGeometry(
-        sourceElement,
-        targetElement
-      );
-
-    const source =
-      tubes[from];
-
-    const color =
-      source[
-        source.length - 1
-      ];
-
-    setHistory(
-      (current) => [
+      setHistory((current) => [
         ...current,
         {
           from,
           to: index,
-          previous:
-            tubes.map(
-              (tube) => [
-                ...tube,
-              ]
-            ),
+          previous: tubes.map((tube) => [
+            ...tube,
+          ]),
         },
-      ]
-    );
+      ]);
 
-    setPourAnimation({
-      from,
-      to: index,
-      color,
-      angle:
-        geometry.angle,
-      streamAngle:
-        geometry.streamAngle,
-      streamLength:
-        geometry.streamLength,
-    });
-
-    setSelected(null);
-
-    sound("pour");
-
-    /*
-     * Let the physical pour animation
-     * play before changing the board.
-     */
-    window.setTimeout(() => {
       setTubes(next);
 
-      setMoves(
-        (value) =>
-          value + 1
-      );
+      setMoves((value) => value + 1);
 
-      setPourAnimation(
-        null
-      );
+      setPouring(null);
 
       if (isSolved(next)) {
         setWon(true);
-
         sound("win");
       }
-    }, 820);
+    }, 900);
   }
 
   function restart() {
-    setTubes(
-      generateLevel(level)
-    );
-
+    setTubes(generateLevel(level));
     setSelected(null);
-
     setMoves(0);
-
     setHistory([]);
-
     setWon(false);
-
-    setPourAnimation(null);
+    setPouring(null);
   }
 
   function undo() {
-    if (pourAnimation) return;
+    if (pouring) return;
 
     const last =
-      history[
-        history.length - 1
-      ];
+      history[history.length - 1];
 
     if (!last) return;
 
     setTubes(
-      last.previous.map(
-        (tube) => [
-          ...tube,
-        ]
-      )
+      last.previous.map((tube) => [
+        ...tube,
+      ])
     );
 
-    setHistory(
-      (current) =>
-        current.slice(
-          0,
-          -1
-        )
+    setHistory((current) =>
+      current.slice(0, -1)
     );
 
-    setMoves(
-      (value) =>
-        Math.max(
-          0,
-          value - 1
-        )
+    setMoves((value) =>
+      Math.max(0, value - 1)
     );
 
     setSelected(null);
-
     setWon(false);
   }
 
   function nextLevel() {
-    if (pourAnimation) return;
+    if (pouring) return;
 
     const nextLevelNumber =
       level + 1;
 
-    setLevel(
-      nextLevelNumber
-    );
+    setLevel(nextLevelNumber);
 
     setTubes(
-      generateLevel(
-        nextLevelNumber
-      )
+      generateLevel(nextLevelNumber)
     );
 
     setSelected(null);
-
     setMoves(0);
-
     setHistory([]);
-
     setWon(false);
-
-    setPourAnimation(null);
+    setPouring(null);
   }
-
-  const sourceStyle =
-    pourAnimation
-      ? ({
-          "--pour-angle":
-            `${pourAnimation.angle}deg`,
-        } as CSSProperties)
-      : undefined;
-
-  const streamStyle =
-    pourAnimation
-      ? ({
-          "--stream-angle":
-            `${pourAnimation.streamAngle}deg`,
-          "--stream-length":
-            `${pourAnimation.streamLength}px`,
-          "--liquid-color":
-            COLORS[
-              pourAnimation.color
-            ],
-        } as CSSProperties)
-      : undefined;
 
   return (
     <main className="gamePage">
@@ -739,23 +609,15 @@ export default function WaterSorter() {
           </div>
 
           <div>
-            <strong>
-              1000 GAMES
-            </strong>
-
-            <small>
-              GAME #001
-            </small>
+            <strong>1000 GAMES</strong>
+            <small>GAME #001</small>
           </div>
         </div>
 
         <button
           className="soundButton"
           onClick={() =>
-            setMuted(
-              (value) =>
-                !value
-            )
+            setMuted((value) => !value)
           }
           aria-label={
             muted
@@ -763,9 +625,7 @@ export default function WaterSorter() {
               : "Disable sound"
           }
         >
-          {muted
-            ? "🔇"
-            : "🔊"}
+          {muted ? "🔇" : "🔊"}
         </button>
       </header>
 
@@ -776,45 +636,28 @@ export default function WaterSorter() {
               LIQUID PUZZLE
             </div>
 
-            <h1>
-              Water Sorter
-            </h1>
+            <h1>Water Sorter</h1>
 
             <p>
-              Sort every color into
-              its own tube.
+              Sort every color into its
+              own tube.
             </p>
           </div>
 
           <div className="stats">
             <div>
-              <span>
-                LEVEL
-              </span>
-
-              <b>
-                {level}
-              </b>
+              <span>LEVEL</span>
+              <b>{level}</b>
             </div>
 
             <div>
-              <span>
-                MOVES
-              </span>
-
-              <b>
-                {moves}
-              </b>
+              <span>MOVES</span>
+              <b>{moves}</b>
             </div>
 
             <div>
-              <span>
-                MODE
-              </span>
-
-              <b>
-                {difficulty}
-              </b>
+              <span>MODE</span>
+              <b>{difficulty}</b>
             </div>
           </div>
         </div>
@@ -823,11 +666,8 @@ export default function WaterSorter() {
           <button
             onClick={undo}
             disabled={
-              history.length ===
-                0 ||
-              Boolean(
-                pourAnimation
-              )
+              history.length === 0 ||
+              pouring !== null
             }
           >
             ↶ Undo
@@ -835,141 +675,120 @@ export default function WaterSorter() {
 
           <button
             onClick={restart}
-            disabled={
-              Boolean(
-                pourAnimation
-              )
-            }
+            disabled={pouring !== null}
           >
             ↻ Restart
           </button>
         </div>
 
         <div className="board">
-          {tubes.map(
-            (
-              tube,
-              index
-            ) => {
-              const isSource =
-                pourAnimation?.from ===
-                index;
+          {tubes.map((tube, index) => {
+            const isSource =
+              pouring?.from === index;
 
-              const isTarget =
-                pourAnimation?.to ===
-                index;
+            const isTarget =
+              pouring?.to === index;
 
-              const classes = [
-                "tubeButton",
-                selected ===
-                index
-                  ? "selected"
-                  : "",
-                isSource
-                  ? "pouring"
-                  : "",
-                isTarget
-                  ? "receiving"
-                  : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
+            const isSelected =
+              selected === index;
 
-              return (
-                <button
-                  key={index}
-                  ref={(element) => {
-                    tubeRefs.current[
-                      index
-                    ] =
-                      element;
-                  }}
-                  className={
-                    classes
-                  }
-                  style={
-                    isSource
-                      ? sourceStyle
-                      : undefined
-                  }
-                  onClick={() =>
-                    handleTubeClick(
-                      index
-                    )
-                  }
-                  aria-label={`Tube ${
-                    index + 1
-                  }`}
-                >
-                  {isSource &&
-                    pourAnimation && (
-                      <div
-                        className="pourStream"
-                        style={
-                          streamStyle
-                        }
-                      />
+            const style =
+              isSource && pouring
+                ? ({
+                    "--pour-angle":
+                      `${pouring.angle}deg`,
+                    "--pour-x":
+                      `${pouring.moveX}px`,
+                    "--pour-y":
+                      `${pouring.moveY}px`,
+                    "--stream-x":
+                      `${pouring.streamX}px`,
+                    "--stream-y":
+                      `${pouring.streamY}px`,
+                    "--stream-length":
+                      `${pouring.streamLength}px`,
+                  } as React.CSSProperties)
+                : undefined;
+
+            return (
+              <button
+                key={index}
+                ref={(element) => {
+                  tubeRefs.current[index] =
+                    element;
+                }}
+                className={[
+                  "tubeButton",
+                  isSelected
+                    ? "selected"
+                    : "",
+                  isSource
+                    ? "pouring"
+                    : "",
+                  isTarget
+                    ? "receiving"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                style={style}
+                onClick={() =>
+                  handleTubeClick(index)
+                }
+                aria-label={`Tube ${index + 1}`}
+                disabled={
+                  pouring !== null
+                }
+              >
+                <div className="tube">
+                  <div className="tubeRim" />
+
+                  <div className="glassReflection" />
+
+                  <div className="water">
+                    {tube.map(
+                      (color, position) => (
+                        <div
+                          key={`${index}-${position}`}
+                          className="waterLayer"
+                          style={
+                            {
+                              "--liquid-color":
+                                COLORS[color],
+                            } as React.CSSProperties
+                          }
+                        />
+                      )
                     )}
-
-                  <div className="tube">
-                    <div className="tubeRim" />
-
-                    <div className="glassReflection" />
-
-                    <div className="water">
-                      {tube.map(
-                        (
-                          color,
-                          position
-                        ) => (
-                          <div
-                            key={`${index}-${position}`}
-                            className="waterLayer"
-                            style={
-                              {
-                                "--liquid-color":
-                                  COLORS[
-                                    color
-                                  ],
-                                background:
-                                  COLORS[
-                                    color
-                                  ],
-                              } as CSSProperties
-                            }
-                          />
-                        )
-                      )}
-
-                      {isSource &&
-                        pourAnimation && (
-                          <div
-                            className="pouringLiquid"
-                            style={
-                              {
-                                "--liquid-color":
-                                  COLORS[
-                                    pourAnimation.color
-                                  ],
-                              } as CSSProperties
-                            }
-                          />
-                        )}
-                    </div>
                   </div>
+                </div>
 
-                  <span className="tubeNumber">
-                    {index + 1}
-                  </span>
-                </button>
-              );
-            }
-          )}
+                {isSource &&
+                  pouring && (
+                    <div
+                      className="pourStream"
+                      style={
+                        {
+                          "--liquid-color":
+                            COLORS[
+                              pouring.color
+                            ],
+                        } as React.CSSProperties
+                      }
+                    />
+                  )}
+
+                <span className="tubeNumber">
+                  {index + 1}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="instruction">
-          Tap a tube, then tap
-          another tube to pour.
+          Tap a tube, then tap another
+          tube to pour.
         </div>
 
         {won && (
@@ -987,14 +806,11 @@ export default function WaterSorter() {
             </h2>
 
             <p>
-              Level {level} ·{" "}
-              {moves} moves
+              Level {level} · {moves} moves
             </p>
 
             <button
-              onClick={
-                nextLevel
-              }
+              onClick={nextLevel}
             >
               Next Level →
             </button>
@@ -1003,22 +819,12 @@ export default function WaterSorter() {
       </section>
 
       <footer>
-        <span>
-          ♾ Infinite Levels
-        </span>
-
+        <span>♾ Infinite Levels</span>
         <span>•</span>
-
-        <span>
-          Procedural Generation
-        </span>
-
+        <span>Procedural Generation</span>
         <span>•</span>
-
-        <span>
-          Sound FX
-        </span>
+        <span>Sound FX</span>
       </footer>
     </main>
   );
-      }
+}
