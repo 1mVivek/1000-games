@@ -1,7 +1,7 @@
-
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -47,47 +47,84 @@ const COLORS = [
   "#ff7138",
 ];
 
-function random(seed: number) {
-  const x = Math.sin(seed * 9999.91) * 43758.5453;
+function random(seed: number): number {
+  const x =
+    Math.sin(seed * 9999.91) *
+    43758.5453;
+
   return x - Math.floor(x);
 }
 
-function topRun(tube: Tube) {
-  if (!tube.length) return 0;
+function topRun(tube: Tube): number {
+  if (tube.length === 0) return 0;
 
-  const color = tube[tube.length - 1];
+  const color =
+    tube[tube.length - 1];
 
   let count = 0;
 
-  for (let i = tube.length - 1; i >= 0; i--) {
+  for (
+    let i = tube.length - 1;
+    i >= 0;
+    i--
+  ) {
     if (tube[i] !== color) break;
+
     count++;
   }
 
   return count;
 }
 
-function isSolved(tubes: Tube[]) {
+function isSolved(
+  tubes: Tube[]
+): boolean {
   return tubes.every(
     (tube) =>
       tube.length === 0 ||
-      (tube.length === CAPACITY &&
-        tube.every((color) => color === tube[0]))
+      (
+        tube.length === CAPACITY &&
+        tube.every(
+          (color) =>
+            color === tube[0]
+        )
+      )
   );
 }
 
-function generateLevel(level: number): Tube[] {
+/*
+ * Generate every level from a solved
+ * configuration and scramble it using
+ * legal reverse moves.
+ */
+function generateLevel(
+  level: number
+): Tube[] {
   const colors = Math.min(
-    3 + Math.floor((level - 1) / 8),
+    3 +
+      Math.floor(
+        (level - 1) / 8
+      ),
     8
   );
 
   const emptyTubes =
-    level < 15 ? 2 : level < 50 ? 3 : 4;
+    level < 15
+      ? 2
+      : level < 50
+        ? 3
+        : 4;
 
   const tubes: Tube[] = [];
 
-  for (let color = 0; color < colors; color++) {
+  /*
+   * Solved starting state.
+   */
+  for (
+    let color = 0;
+    color < colors;
+    color++
+  ) {
     tubes.push([
       color,
       color,
@@ -96,16 +133,27 @@ function generateLevel(level: number): Tube[] {
     ]);
   }
 
-  for (let i = 0; i < emptyTubes; i++) {
+  /*
+   * Empty tubes.
+   */
+  for (
+    let i = 0;
+    i < emptyTubes;
+    i++
+  ) {
     tubes.push([]);
   }
 
+  /*
+   * Deterministic scrambling.
+   */
   const targetMoves = Math.min(
     18 + level * 4,
     220
   );
 
-  let seed = level * 7919 + 17;
+  let seed =
+    level * 7919 + 17;
 
   for (
     let step = 0;
@@ -121,47 +169,76 @@ function generateLevel(level: number): Tube[] {
       from < tubes.length;
       from++
     ) {
-      const source = tubes[from];
+      const source =
+        tubes[from];
 
-      if (!source.length) continue;
+      if (
+        source.length === 0
+      ) {
+        continue;
+      }
 
       const color =
-        source[source.length - 1];
+        source[
+          source.length - 1
+        ];
 
-      const run = topRun(source);
+      const run =
+        topRun(source);
 
       for (
         let to = 0;
         to < tubes.length;
         to++
       ) {
-        if (from === to) continue;
+        if (from === to) {
+          continue;
+        }
 
-        const target = tubes[to];
+        const target =
+          tubes[to];
 
         const free =
-          CAPACITY - target.length;
+          CAPACITY -
+          target.length;
 
-        if (free <= 0) continue;
+        if (free <= 0) {
+          continue;
+        }
 
+        /*
+         * Avoid simply merging an
+         * already matching colour.
+         */
         if (
           target.length > 0 &&
-          target[target.length - 1] === color
+          target[
+            target.length - 1
+          ] === color
         ) {
           continue;
         }
 
+        /*
+         * Don't completely expose the
+         * same colour underneath.
+         */
         const maxAmount =
           source.length === run
             ? run
             : run - 1;
 
-        if (maxAmount <= 0) continue;
+        if (
+          maxAmount <= 0
+        ) {
+          continue;
+        }
 
-        const max = Math.min(
-          maxAmount,
-          free
-        );
+        const max =
+          Math.min(
+            maxAmount,
+            free
+          );
 
         for (
           let amount = 1;
@@ -177,31 +254,98 @@ function generateLevel(level: number): Tube[] {
       }
     }
 
-    if (!candidates.length) break;
+    if (
+      candidates.length === 0
+    ) {
+      break;
+    }
 
-    const index = Math.floor(
-      random(
-        seed + step * 31
-      ) * candidates.length
-    );
+    const index =
+      Math.floor(
+        random(
+          seed +
+            step * 31
+        ) *
+          candidates.length
+      );
 
     const [
       from,
       to,
       amount,
-    ] = candidates[index];
+    ] =
+      candidates[index];
 
-    const moved = tubes[from].splice(
-      tubes[from].length - amount,
-      amount
+    const moved =
+      tubes[from].splice(
+        tubes[from].length -
+          amount,
+        amount
+      );
+
+    tubes[to].push(
+      ...moved
     );
 
-    tubes[to].push(...moved);
-
     seed =
-      (seed * 1664525 +
-        1013904223) >>>
-      0;
+      (
+        seed * 1664525 +
+        1013904223
+      ) >>> 0;
+  }
+
+  /*
+   * Extremely unlikely fallback.
+   */
+  if (isSolved(tubes)) {
+    for (
+      let extra = 0;
+      extra < 100 &&
+      isSolved(tubes);
+      extra++
+    ) {
+      const from =
+        extra % colors;
+
+      const to =
+        colors +
+        (
+          extra %
+          emptyTubes
+        );
+
+      if (
+        tubes[from].length === 0 ||
+        tubes[to].length >=
+          CAPACITY
+      ) {
+        continue;
+      }
+
+      const amount =
+        Math.min(
+          topRun(
+            tubes[from]
+          ),
+          CAPACITY -
+            tubes[to].length
+        );
+
+      if (amount <= 0) {
+        continue;
+      }
+
+      const moved =
+        tubes[from].splice(
+          tubes[from].length -
+            amount,
+          amount
+        );
+
+      tubes[to].push(
+        ...moved
+      );
+    }
   }
 
   return tubes;
@@ -211,23 +355,43 @@ function canPour(
   tubes: Tube[],
   from: number,
   to: number
-) {
-  if (from === to) return false;
-
-  const source = tubes[from];
-  const target = tubes[to];
-
-  if (!source.length) return false;
-
-  if (target.length >= CAPACITY) {
+): boolean {
+  if (from === to) {
     return false;
   }
 
-  if (!target.length) return true;
+  const source =
+    tubes[from];
+
+  const target =
+    tubes[to];
+
+  if (
+    source.length === 0
+  ) {
+    return false;
+  }
+
+  if (
+    target.length >=
+    CAPACITY
+  ) {
+    return false;
+  }
+
+  if (
+    target.length === 0
+  ) {
+    return true;
+  }
 
   return (
-    source[source.length - 1] ===
-    target[target.length - 1]
+    source[
+      source.length - 1
+    ] ===
+    target[
+      target.length - 1
+    ]
   );
 }
 
@@ -236,56 +400,90 @@ function pour(
   from: number,
   to: number
 ): Tube[] | null {
-  if (!canPour(tubes, from, to)) {
+  if (
+    !canPour(
+      tubes,
+      from,
+      to
+    )
+  ) {
     return null;
   }
 
-  const next = tubes.map((tube) => [
-    ...tube,
-  ]);
+  const next =
+    tubes.map(
+      (tube) => [
+        ...tube,
+      ]
+    );
 
-  const amount = Math.min(
-    topRun(next[from]),
-    CAPACITY - next[to].length
+  const amount =
+    Math.min(
+      topRun(
+        next[from]
+      ),
+      CAPACITY -
+        next[to].length
+    );
+
+  if (amount <= 0) {
+    return null;
+  }
+
+  const moved =
+    next[from].splice(
+      next[from].length -
+        amount,
+      amount
+    );
+
+  next[to].push(
+    ...moved
   );
-
-  const moved = next[from].splice(
-    next[from].length - amount,
-    amount
-  );
-
-  next[to].push(...moved);
 
   return next;
 }
 
+/*
+ * IMPORTANT:
+ *
+ * tube is a SINGLE Tube.
+ *
+ * Not Tube[].
+ */
 function tubeMarkup(
-  tube: Tube[],
+  tube: Tube,
   tubeIndex: number
 ) {
-  return tube.map((color, position) => {
-    const sameAsBelow =
-      position > 0 &&
-      tube[position - 1] === color;
+  return tube.map(
+    (color, position) => {
+      const sameAsBelow =
+        position > 0 &&
+        tube[
+          position - 1
+        ] === color;
 
-    return (
-      <div
-        key={`${tubeIndex}-${position}`}
-        className={[
-          "waterLayer",
-          sameAsBelow
-            ? "mergedLayer"
-            : "liquidBoundary",
-        ].join(" ")}
-        style={
-          {
-            "--liquid-color":
-              COLORS[color],
-          } as CSSProperties
-        }
-      />
-    );
-  });
+      return (
+        <div
+          key={`${tubeIndex}-${position}`}
+          className={[
+            "waterLayer",
+            sameAsBelow
+              ? "mergedLayer"
+              : "liquidBoundary",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          style={
+            {
+              "--liquid-color":
+                COLORS[color],
+            } as CSSProperties
+          }
+        />
+      );
+    }
+  );
 }
 
 export default function WaterSorter() {
@@ -298,7 +496,9 @@ export default function WaterSorter() {
     );
 
   const [selected, setSelected] =
-    useState<number | null>(null);
+    useState<number | null>(
+      null
+    );
 
   const [moves, setMoves] =
     useState(0);
@@ -313,12 +513,14 @@ export default function WaterSorter() {
     useState(false);
 
   const [pouring, setPouring] =
-    useState<PourAnimation | null>(
-      null
-    );
+    useState<
+      PourAnimation | null
+    >(null);
 
   const [receiving, setReceiving] =
-    useState<number | null>(null);
+    useState<number | null>(
+      null
+    );
 
   const boardRef =
     useRef<HTMLDivElement | null>(
@@ -327,7 +529,9 @@ export default function WaterSorter() {
 
   const tubeRefs =
     useRef<
-      Array<HTMLButtonElement | null>
+      Array<
+        HTMLButtonElement | null
+      >
     >([]);
 
   const audioContext =
@@ -335,12 +539,57 @@ export default function WaterSorter() {
       null
     );
 
-  const difficulty = useMemo(() => {
-    if (level < 8) return "EASY";
-    if (level < 25) return "NORMAL";
-    if (level < 60) return "HARD";
-    return "EXPERT";
-  }, [level]);
+  const animationTimer =
+    useRef<number | null>(
+      null
+    );
+
+  const receivingTimer =
+    useRef<number | null>(
+      null
+    );
+
+  const difficulty =
+    useMemo(() => {
+      if (level < 8) {
+        return "EASY";
+      }
+
+      if (level < 25) {
+        return "NORMAL";
+      }
+
+      if (level < 60) {
+        return "HARD";
+      }
+
+      return "EXPERT";
+    }, [level]);
+
+  /*
+   * Cleanup timers.
+   */
+  useEffect(() => {
+    return () => {
+      if (
+        animationTimer.current !==
+        null
+      ) {
+        window.clearTimeout(
+          animationTimer.current
+        );
+      }
+
+      if (
+        receivingTimer.current !==
+        null
+      ) {
+        window.clearTimeout(
+          receivingTimer.current
+        );
+      }
+    };
+  }, []);
 
   function sound(
     type:
@@ -349,7 +598,9 @@ export default function WaterSorter() {
       | "bad"
       | "win"
   ) {
-    if (muted) return;
+    if (muted) {
+      return;
+    }
 
     try {
       const AudioContextClass =
@@ -358,11 +609,16 @@ export default function WaterSorter() {
           window as typeof window & {
             webkitAudioContext?: typeof AudioContext;
           }
-        ).webkitAudioContext;
+        )
+          .webkitAudioContext;
 
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) {
+        return;
+      }
 
-      if (!audioContext.current) {
+      if (
+        !audioContext.current
+      ) {
         audioContext.current =
           new AudioContextClass();
       }
@@ -370,7 +626,10 @@ export default function WaterSorter() {
       const ctx =
         audioContext.current;
 
-      if (ctx.state === "suspended") {
+      if (
+        ctx.state ===
+        "suspended"
+      ) {
         void ctx.resume();
       }
 
@@ -380,15 +639,25 @@ export default function WaterSorter() {
       const gain =
         ctx.createGain();
 
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
+      oscillator.connect(
+        gain
+      );
 
-      const frequency = {
+      gain.connect(
+        ctx.destination
+      );
+
+      const frequencies = {
         tap: 430,
         pour: 205,
         bad: 120,
         win: 720,
-      }[type];
+      };
+
+      oscillator.frequency.setValueAtTime(
+        frequencies[type],
+        ctx.currentTime
+      );
 
       oscillator.type =
         type === "bad"
@@ -400,10 +669,17 @@ export default function WaterSorter() {
       const now =
         ctx.currentTime;
 
-      oscillator.frequency.setValueAtTime(
-        frequency,
-        now
-      );
+      const duration =
+        type === "pour"
+          ? 0.35
+          : type === "win"
+            ? 0.45
+            : 0.12;
+
+      const volume =
+        type === "pour"
+          ? 0.075
+          : 0.06;
 
       gain.gain.setValueAtTime(
         0.0001,
@@ -411,33 +687,31 @@ export default function WaterSorter() {
       );
 
       gain.gain.exponentialRampToValueAtTime(
-        type === "pour"
-          ? 0.075
-          : 0.06,
+        volume,
         now + 0.015
       );
 
       gain.gain.exponentialRampToValueAtTime(
         0.0001,
-        now +
-          (type === "pour"
-            ? 0.35
-            : 0.12)
+        now + duration
       );
 
       oscillator.start(now);
 
       oscillator.stop(
-        now +
-          (type === "pour"
-            ? 0.35
-            : 0.12)
+        now + duration
       );
     } catch {
-      // Audio must never break gameplay.
+      /*
+       * Audio must never break gameplay.
+       */
     }
   }
 
+  /*
+   * Create the physical-looking
+   * pouring animation.
+   */
   function createPourAnimation(
     from: number,
     to: number
@@ -451,7 +725,11 @@ export default function WaterSorter() {
     const target =
       tubeRefs.current[to];
 
-    if (!board || !source || !target) {
+    if (
+      !board ||
+      !source ||
+      !target
+    ) {
       return null;
     }
 
@@ -472,71 +750,90 @@ export default function WaterSorter() {
       targetRect.left +
       targetRect.width / 2;
 
-    const sourceTop =
-      sourceRect.top -
-      boardRect.top;
+    const sourceCenterY =
+      sourceRect.top +
+      sourceRect.height / 2;
 
-    const targetTop =
-      targetRect.top -
-      boardRect.top;
+    const targetCenterY =
+      targetRect.top +
+      targetRect.height / 2;
 
     const dx =
       targetCenterX -
       sourceCenterX;
 
-    /*
-     * The ghost travels most of the distance
-     * toward the receiving tube.
-     */
-    const moveX =
-      dx * 0.72;
+    const dy =
+      targetCenterY -
+      sourceCenterY;
 
-    /*
-     * Lift before pouring.
-     */
-    const moveY =
-      -Math.min(
-        82,
-        Math.max(
-          42,
-          Math.abs(dx) * 0.16
-        )
-      );
+    const distance =
+      Math.abs(dx);
 
     const direction =
       dx >= 0 ? 1 : -1;
 
+    /*
+     * Move almost all the way to the
+     * receiving tube.
+     */
+    const moveX =
+      dx * 0.90;
+
+    /*
+     * Lift much higher before tilting.
+     */
+    const moveY =
+      -Math.min(
+        125,
+        Math.max(
+          65,
+          72 +
+            distance * 0.12
+        )
+      );
+
+    /*
+     * Strong physical tilt.
+     */
     const angle =
       direction *
       Math.min(
-        58,
+        68,
         Math.max(
-          45,
-          45 +
-            Math.abs(dx) * 0.018
+          48,
+          48 +
+            distance * 0.025
         )
       );
 
+    /*
+     * The stream travels from the
+     * tilted tube toward the receiver.
+     */
     const streamX =
-      dx * 0.44;
+      dx * 0.52;
 
     const streamY =
-      Math.max(
-        90,
-        targetTop -
-          sourceTop +
-          110
-      );
+      dy * 0.34 +
+      110;
 
     const streamLength =
       Math.min(
-        190,
+        260,
         Math.max(
-          105,
-          Math.abs(dx) * 0.55 +
-            85
+          125,
+          distance * 0.68 +
+            115
         )
       );
+
+    const sourceTop =
+      sourceRect.top -
+      boardRect.top;
+
+    const sourceLeft =
+      sourceRect.left -
+      boardRect.left;
 
     return {
       from,
@@ -544,15 +841,12 @@ export default function WaterSorter() {
 
       color:
         tubes[from][
-          tubes[from].length - 1
+          tubes[from].length -
+            1
         ],
 
-      left:
-        sourceRect.left -
-        boardRect.left,
-
-      top:
-        sourceTop,
+      left: sourceLeft,
+      top: sourceTop,
 
       moveX,
       moveY,
@@ -567,10 +861,25 @@ export default function WaterSorter() {
   function handleTubeClick(
     index: number
   ) {
-    if (won || pouring) return;
+    if (
+      won ||
+      pouring !== null
+    ) {
+      return;
+    }
 
-    if (selected === null) {
-      if (!tubes[index].length) {
+    /*
+     * First click:
+     * select source tube.
+     */
+    if (
+      selected === null
+    ) {
+      if (
+        tubes[index].length ===
+        0
+      ) {
+        sound("bad");
         return;
       }
 
@@ -580,30 +889,48 @@ export default function WaterSorter() {
       return;
     }
 
-    if (selected === index) {
+    /*
+     * Clicking the same tube
+     * deselects it.
+     */
+    if (
+      selected === index
+    ) {
       setSelected(null);
       return;
     }
 
-    const from = selected;
+    const from =
+      selected;
 
-    if (!canPour(
-      tubes,
-      from,
-      index
-    )) {
+    /*
+     * Validate before starting
+     * the animation.
+     */
+    if (
+      !canPour(
+        tubes,
+        from,
+        index
+      )
+    ) {
       sound("bad");
       setSelected(null);
       return;
     }
 
-    const next = pour(
-      tubes,
-      from,
-      index
-    );
+    const next =
+      pour(
+        tubes,
+        from,
+        index
+      );
 
-    if (!next) return;
+    if (!next) {
+      sound("bad");
+      setSelected(null);
+      return;
+    }
 
     const animation =
       createPourAnimation(
@@ -611,57 +938,175 @@ export default function WaterSorter() {
         index
       );
 
+    /*
+     * Fallback if DOM coordinates
+     * cannot be measured.
+     */
     if (!animation) {
-      setTubes(next);
-      setMoves(
-        (value) => value + 1
+      setHistory(
+        (current) => [
+          ...current,
+          {
+            from,
+            to: index,
+            previous:
+              tubes.map(
+                (tube) => [
+                  ...tube,
+                ]
+              ),
+          },
+        ]
       );
+
+      setTubes(next);
+
+      setMoves(
+        (value) =>
+          value + 1
+      );
+
       setSelected(null);
+
+      if (
+        isSolved(next)
+      ) {
+        setWon(true);
+        sound("win");
+      }
+
       return;
     }
 
-    setHistory((current) => [
-      ...current,
-      {
-        from,
-        to: index,
-        previous:
-          tubes.map((tube) => [
-            ...tube,
-          ]),
-      },
-    ]);
+    /*
+     * Save undo state BEFORE
+     * changing the board.
+     */
+    setHistory(
+      (current) => [
+        ...current,
+        {
+          from,
+          to: index,
+          previous:
+            tubes.map(
+              (tube) => [
+                ...tube,
+              ]
+            ),
+        },
+      ]
+    );
 
+    /*
+     * Remove selection.
+     */
     setSelected(null);
 
+    /*
+     * Start animation.
+     */
     setPouring(animation);
-
     setReceiving(index);
 
     sound("pour");
 
-    window.setTimeout(() => {
-      setTubes(next);
-
-      setMoves(
-        (value) => value + 1
+    /*
+     * Prevent stale timers.
+     */
+    if (
+      animationTimer.current !==
+      null
+    ) {
+      window.clearTimeout(
+        animationTimer.current
       );
+    }
 
-      setPouring(null);
+    if (
+      receivingTimer.current !==
+      null
+    ) {
+      window.clearTimeout(
+        receivingTimer.current
+      );
+    }
 
+    /*
+     * 1.05 sec gives enough time
+     * for lift → travel → tilt →
+     * pour → return.
+     */
+    animationTimer.current =
       window.setTimeout(() => {
-        setReceiving(null);
-      }, 180);
+        setTubes(next);
 
-      if (isSolved(next)) {
-        setWon(true);
-        sound("win");
-      }
-    }, 1050);
+        setMoves(
+          (value) =>
+            value + 1
+        );
+
+        setPouring(null);
+
+        /*
+         * Give the receiving tube
+         * a small physical reaction.
+         */
+        receivingTimer.current =
+          window.setTimeout(
+            () => {
+              setReceiving(
+                null
+              );
+            },
+            260
+          );
+
+        if (
+          isSolved(next)
+        ) {
+          setWon(true);
+
+          /*
+           * Small delay so the
+           * pour sound doesn't
+           * visually feel mixed
+           * with the win event.
+           */
+          window.setTimeout(
+            () => {
+              sound("win");
+            },
+            120
+          );
+        }
+      }, 1050);
   }
 
   function restart() {
-    if (pouring) return;
+    if (
+      pouring !== null
+    ) {
+      return;
+    }
+
+    if (
+      animationTimer.current !==
+      null
+    ) {
+      window.clearTimeout(
+        animationTimer.current
+      );
+    }
+
+    if (
+      receivingTimer.current !==
+      null
+    ) {
+      window.clearTimeout(
+        receivingTimer.current
+      );
+    }
 
     setTubes(
       generateLevel(level)
@@ -676,48 +1121,73 @@ export default function WaterSorter() {
   }
 
   function undo() {
-    if (pouring) return;
+    if (
+      pouring !== null
+    ) {
+      return;
+    }
 
     const last =
-      history[history.length - 1];
+      history[
+        history.length - 1
+      ];
 
-    if (!last) return;
+    if (!last) {
+      return;
+    }
 
     setTubes(
-      last.previous.map((tube) => [
-        ...tube,
-      ])
+      last.previous.map(
+        (tube) => [
+          ...tube,
+        ]
+      )
     );
 
-    setHistory((current) =>
-      current.slice(0, -1)
+    setHistory(
+      (current) =>
+        current.slice(0, -1)
     );
 
     setMoves(
       (value) =>
-        Math.max(0, value - 1)
+        Math.max(
+          0,
+          value - 1
+        )
     );
 
     setSelected(null);
     setWon(false);
+    setReceiving(null);
   }
 
   function nextLevel() {
-    if (pouring) return;
+    if (
+      pouring !== null
+    ) {
+      return;
+    }
 
     const nextLevel =
       level + 1;
 
-    setLevel(nextLevel);
+    setLevel(
+      nextLevel
+    );
 
     setTubes(
-      generateLevel(nextLevel)
+      generateLevel(
+        nextLevel
+      )
     );
 
     setSelected(null);
     setMoves(0);
     setHistory([]);
     setWon(false);
+    setPouring(null);
+    setReceiving(null);
   }
 
   return (
@@ -743,7 +1213,8 @@ export default function WaterSorter() {
           className="soundButton"
           onClick={() =>
             setMuted(
-              (value) => !value
+              (value) =>
+                !value
             )
           }
           aria-label={
@@ -777,18 +1248,33 @@ export default function WaterSorter() {
 
           <div className="stats">
             <div>
-              <span>LEVEL</span>
-              <b>{level}</b>
+              <span>
+                LEVEL
+              </span>
+
+              <b>
+                {level}
+              </b>
             </div>
 
             <div>
-              <span>MOVES</span>
-              <b>{moves}</b>
+              <span>
+                MOVES
+              </span>
+
+              <b>
+                {moves}
+              </b>
             </div>
 
             <div>
-              <span>MODE</span>
-              <b>{difficulty}</b>
+              <span>
+                MODE
+              </span>
+
+              <b>
+                {difficulty}
+              </b>
             </div>
           </div>
         </div>
@@ -797,7 +1283,8 @@ export default function WaterSorter() {
           <button
             onClick={undo}
             disabled={
-              history.length === 0 ||
+              history.length ===
+                0 ||
               pouring !== null
             }
           >
@@ -819,170 +1306,179 @@ export default function WaterSorter() {
           className="board"
         >
           {tubes.map(
-            (tube, index) => (
+            (
+              tube,
+              index
+            ) => (
               <button
                 key={index}
-                ref={(element) => {
-                  tubeRefs.current[
-                    index
-                  ] = element;
-                }}
-                className={[
-                  "tubeButton",
-                  selected === index
-                    ? "selected"
-                    : "",
-                  receiving === index
-                    ? "receiving"
-                    : "",
-                  pouring?.from ===
-                    index
-                    ? "sourceHidden"
-                    : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() =>
-                  handleTubeClick(
-                    index
-                  )
-                }
-                aria-label={`Tube ${
-                  index + 1
-                }`}
-                disabled={
-                  pouring !== null
-                }
-              >
-                <div className="tube">
-                  <div className="tubeRim" />
+              ref={(element) => {
+  tubeRefs.current[
+    index
+  ] = element;
+}}
+className={[
+  "tubeButton",
 
-                  <div className="glassReflection" />
+  selected ===
+  index
+    ? "selected"
+    : "",
 
-                  <div className="water">
-                    {tubeMarkup(
-                      tube,
-                      index
-                    )}
-                  </div>
-                </div>
+  receiving ===
+  index
+    ? "receiving"
+    : "",
 
-                <span className="tubeNumber">
-                  {index + 1}
-                </span>
-              </button>
-            )
-          )}
+  pouring?.from ===
+  index
+    ? "sourceHidden"
+    : "",
+]
+  .filter(Boolean)
+  .join(" ")}
+onClick={() =>
+  handleTubeClick(
+    index
+  )
+}
+aria-label={`Tube ${
+  index + 1
+}`}
+disabled={
+  pouring !== null
+}
+>
+  <div className="tube">
+    <div className="tubeRim" />
 
-          {pouring && (
-            <div
-              className="pourScene"
-              aria-hidden="true"
-            >
-              <div
-                className="pourGhost"
-                style={
-                  {
-                    left:
-                      `${pouring.left}px`,
-                    top:
-                      `${pouring.top}px`,
-                    "--pour-x":
-                      `${pouring.moveX}px`,
-                    "--pour-y":
-                      `${pouring.moveY}px`,
-                    "--pour-angle":
-                      `${pouring.angle}deg`,
-                    "--stream-x":
-                      `${pouring.streamX}px`,
-                    "--stream-y":
-                      `${pouring.streamY}px`,
-                    "--stream-length":
-                      `${pouring.streamLength}px`,
-                  } as CSSProperties
-                }
-              >
-                <div className="tube">
-                  <div className="tubeRim" />
+    <div className="glassReflection" />
 
-                  <div className="glassReflection" />
+    <div className="water">
+      {tubeMarkup(
+        tube,
+        index
+      )}
+    </div>
+  </div>
 
-                  <div className="water">
-                    {tubeMarkup(
-                      tubes[
-                        pouring.from
-                      ],
-                      pouring.from
-                    )}
-                  </div>
-                </div>
+  <span className="tubeNumber">
+    {index + 1}
+  </span>
+</button>
+)}
+)}
 
-                <div
-                  className="pourStream"
-                  style={
-                    {
-                      "--liquid-color":
-                        COLORS[
-                          pouring.color
-                        ],
-                    } as CSSProperties
-                  }
-                />
-              </div>
-            </div>
+{pouring && (
+  <div
+    className="pourScene"
+    aria-hidden="true"
+  >
+    <div
+      className="pourGhost"
+      style={{
+        left:
+          `${pouring.left}px`,
+        top:
+          `${pouring.top}px`,
+
+        "--pour-x":
+          `${pouring.moveX}px`,
+
+        "--pour-y":
+          `${pouring.moveY}px`,
+
+        "--pour-angle":
+          `${pouring.angle}deg`,
+
+        "--stream-x":
+          `${pouring.streamX}px`,
+
+        "--stream-y":
+          `${pouring.streamY}px`,
+
+        "--stream-length":
+          `${pouring.streamLength}px`,
+      } as CSSProperties}
+    >
+      <div className="tube">
+        <div className="tubeRim" />
+
+        <div className="glassReflection" />
+
+        <div className="water">
+          {tubeMarkup(
+            tubes[
+              pouring.from
+            ],
+            pouring.from
           )}
         </div>
+      </div>
 
-        <div className="instruction">
-          Tap a tube, then tap another
-          tube to pour.
-        </div>
+      <div
+        className="pourStream"
+        style={{
+          "--liquid-color":
+            COLORS[
+              pouring.color
+            ],
+        } as CSSProperties}
+      />
+    </div>
+  </div>
+)}
 
-        {won && (
-          <div className="winPanel">
-            <div className="stars">
-              ★ ★ ★
-            </div>
+<div className="instruction">
+  Tap a tube, then tap another
+  tube to pour.
+</div>
 
-            <div className="complete">
-              LEVEL COMPLETE
-            </div>
+{won && (
+  <div className="winPanel">
+    <div className="stars">
+      ★ ★ ★
+    </div>
 
-            <h2>
-              Perfectly sorted!
-            </h2>
+    <div className="complete">
+      LEVEL COMPLETE
+    </div>
 
-            <p>
-              Level {level} ·{" "}
-              {moves} moves
-            </p>
+    <h2>
+      Perfectly sorted!
+    </h2>
 
-            <button
-              onClick={nextLevel}
-            >
-              Next Level →
-            </button>
-          </div>
-        )}
-      </section>
+    <p>
+      Level {level} ·{" "}
+      {moves} moves
+    </p>
 
-      <footer>
-        <span>
-          ♾ Infinite Levels
-        </span>
-
-        <span>•</span>
-
-        <span>
-          Procedural Generation
-        </span>
-
-        <span>•</span>
-
-        <span>
-          Sound FX
-        </span>
-      </footer>
-    </main>
-  );
+    <button
+      onClick={
+        nextLevel
       }
+    >
+      Next Level →
+    </button>
+  </div>
+)}
+</section>
+
+<footer>
+  <span>
+    ♾ Infinite Levels
+  </span>
+
+  <span>•</span>
+
+  <span>
+    Procedural Generation
+  </span>
+
+  <span>•</span>
+
+  <span>
+    Sound FX
+  </span>
+</footer>
+</main>
